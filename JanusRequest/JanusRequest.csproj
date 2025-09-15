@@ -2,7 +2,30 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.0;net45;net5.0;net6.0;net8.0</TargetFrameworks>
+
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<PackageIcon>icon.png</PackageIcon>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageId>JanusRequest</PackageId>
+		<PackageVersion>1.0.1</PackageVersion>
+		<Title>JanusRequest - HTTP API Client Library</Title>
+		<Authors>Gustavo Viana</Authors>
+		<PackageProjectUrl>https://github.com/gustavorviana/JanusRequest</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/gustavorviana/JanusRequest</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<Company />
+		<PackageReleaseNotes>
+			Initial release of JanusRequest library:
+			- HTTP API client with fluent interface
+			- Automatic serialization (JSON, XML, Form Data, Form URL-Encoded)
+			- Advanced error handling and automatic recovery
+			- Authentication support (Basic, Bearer, API Key)
+			- Throttling and rate limiting management
+			- Attribute-based request configuration
+			- Synchronous and asynchronous extensions
+		</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -16,4 +39,16 @@
 	<ItemGroup Condition="'$(TargetFramework)' == 'net45'">
 		<Reference Include="System.Web" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
 </Project>
