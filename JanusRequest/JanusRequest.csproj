@@ -8,7 +8,7 @@
 		<PackageIcon>icon.png</PackageIcon>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageId>JanusRequest</PackageId>
-		<PackageVersion>1.0.1</PackageVersion>
+		<PackageVersion>1.0.2</PackageVersion>
 		<Title>JanusRequest - HTTP API Client Library</Title>
 		<Authors>Gustavo Viana</Authors>
 		<PackageProjectUrl>https://github.com/gustavorviana/JanusRequest</PackageProjectUrl>
@@ -26,6 +26,7 @@
 			- Attribute-based request configuration
 			- Synchronous and asynchronous extensions
 		</PackageReleaseNotes>
+		<PackageTags>http;api;client;rest;json;xml;authentication;serialization;retry;throttling;fluent;async;error-handling;recovery;attributes</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -45,7 +46,7 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<None Include="README.md">
+		<None Include="../README.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
