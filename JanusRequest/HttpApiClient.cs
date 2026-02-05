@@ -1,6 +1,8 @@
-﻿using JanusRequest.Builders;
+using JanusRequest.Builders;
 using JanusRequest.HttpHandlers;
 using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -61,6 +63,18 @@ namespace JanusRequest
         /// </summary>
         /// <param name="url">The base URL for API requests. Can be null.</param>
         public HttpApiClient(string url = null) : this(new HttpClient(), true)
+        {
+            Url = url;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the HttpApiClient class with a custom HttpMessageHandler (or DelegatingHandler chain)
+        /// and optional base URL. Use this to add interceptors, logging, retry logic, or custom request/response handling.
+        /// </summary>
+        /// <param name="url">The base URL for API requests. Can be null.</param>
+        /// <param name="handler">The HttpMessageHandler to use (e.g., HttpClientHandler, DelegatingHandler). When using DelegatingHandler, ensure InnerHandler is set.</param>
+        /// <exception cref="ArgumentNullException">Thrown when handler is null.</exception>
+        public HttpApiClient(string url, HttpMessageHandler handler) : this(new HttpClient(handler ?? throw new ArgumentNullException(nameof(handler))), true)
         {
             Url = url;
         }
@@ -297,10 +311,19 @@ namespace JanusRequest
         /// <returns>The raw HttpResponseMessage from the request.</returns>
         public async Task<HttpResponseMessage> SendHttpRequestAsync(object body, HttpRequestInfo info = null, CancellationToken cancellationToken = default)
         {
+            ValidateBody(body);
             var requestMessage = CreateHttpRequestMessage(ConfigureRequest(info, body), body);
             return await SendRequestAsync(requestMessage, cancellationToken);
         }
 
+        private void ValidateBody(object body)
+        {
+            if (!Settings.ValidateRequest || body == null || ReflectionUtils.IsNative(body.GetType(), false))
+                return;
+
+            var context = new ValidationContext(body, null, null);
+            Validator.ValidateObject(body, context, true);
+        }
         #endregion
 
         /// <summary>

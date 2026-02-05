@@ -1,8 +1,10 @@
-﻿using JanusRequest.Attributes;
+using JanusRequest.Attributes;
 using JanusRequest.ContentTranslator;
 using JanusRequest.HttpHandlers;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
@@ -62,6 +64,12 @@ namespace JanusRequest
         /// Default value is HttpContentType.Json.
         /// </summary>
         public HttpContentType DefaultContentType { get; set; } = HttpContentType.Json;
+
+        /// <summary>
+        /// Gets or sets whether to validate request models using DataAnnotations before sending.
+        /// Default value is true to maintain backward compatibility.
+        /// </summary>
+        public bool ValidateRequest { get; set; } = true;
 
         /// <summary>
         /// Initializes a new instance of the HttpApiClientSettings class with default content translators.

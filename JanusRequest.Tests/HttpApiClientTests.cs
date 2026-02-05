@@ -1,8 +1,9 @@
-﻿using JanusRequest.Attributes;
+using JanusRequest.Attributes;
 using JanusRequest.Builders;
 using JanusRequest.ContentTranslator;
 using JanusRequest.HttpHandlers;
 using NSubstitute;
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 
 namespace JanusRequest.Tests
@@ -58,6 +59,112 @@ namespace JanusRequest.Tests
             // Assert
             Assert.Equal("https://api.example.com/", client.Url);
             client.Dispose();
+        }
+
+        [Fact]
+        public void Constructor_WithUrlAndHandler_CreatesClientWithCustomHandler()
+        {
+            // Arrange
+            var handler = new MockHttpMessageHandler();
+
+            // Act
+            var client = new HttpApiClient("https://api.example.com", handler);
+
+            // Assert
+            Assert.Equal("https://api.example.com", client.Url);
+            client.Dispose();
+        }
+
+        [Fact]
+        public void Constructor_WithHandler_ThrowsWhenHandlerIsNull()
+        {
+            Assert.Throws<ArgumentNullException>(() => new HttpApiClient("https://api.example.com", (HttpMessageHandler)null!));
+        }
+
+        [Fact]
+        public async Task ValidateRequest_WithValidModel_DoesNotThrow()
+        {
+            // Arrange
+            var request = new ValidatedRequest { Name = "Valid" };
+            _settings.ValidateRequest = true;
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            var result = await _httpApiClient.SendAsync(request);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+        }
+
+        [Fact]
+        public async Task ValidateRequest_WithInvalidModel_ThrowsValidationException()
+        {
+            // Arrange
+            var request = new ValidatedRequest { Name = null };
+            _settings.ValidateRequest = true;
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ValidationException>(() => _httpApiClient.SendAsync(request));
+        }
+
+        [Fact]
+        public async Task ValidateRequest_WithInvalidModel_ThrowsValidationExceptionWithExpectedFormat()
+        {
+            // Arrange
+            var request = new ValidatedRequest { Name = null };
+            _settings.ValidateRequest = true;
+            const string expectedErrorMessage = "Name is required";
+
+            // Act
+            var exception = await Assert.ThrowsAsync<ValidationException>(() => _httpApiClient.SendAsync(request));
+
+            // Assert
+            Assert.NotNull(exception.Message);
+            Assert.Contains(expectedErrorMessage, exception.Message);
+            Assert.NotNull(exception.ValidationResult);
+            Assert.Equal(expectedErrorMessage, exception.ValidationResult.ErrorMessage);
+            Assert.Contains("Name", exception.ValidationResult.MemberNames);
+        }
+
+        [Fact]
+        public async Task ValidateRequest_WhenDisabled_DoesNotValidate()
+        {
+            // Arrange
+            var request = new ValidatedRequest { Name = null };
+            _settings.ValidateRequest = false;
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            var result = await _httpApiClient.SendAsync(request);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+        }
+
+        [Fact]
+        public async Task ValidateRequest_WithNullBody_DoesNotValidate()
+        {
+            // Arrange
+            _settings.ValidateRequest = true;
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+            var info = new HttpRequestInfo { Path = "/test", Method = "GET" };
+
+            // Act & Assert
+            var result = await _httpApiClient.SendAsync<TestResponse>(info);
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+        }
+
+        [Fact]
+        public async Task ValidateRequest_WithNativeType_DoesNotValidate()
+        {
+            // Arrange
+            _settings.ValidateRequest = true;
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+            var info = new HttpRequestInfo { Path = "/test", Method = "POST" };
+
+            // Act & Assert
+            var result = await _httpApiClient.SendRequestAsync("string body", info);
+            Assert.Equal(HttpStatusCode.OK, result.Status);
         }
 
         [Fact]
@@ -820,6 +927,13 @@ namespace JanusRequest.Tests
         [Request("http://localhost/test")]
         public class TestRequest : IRequestResponse<TestResponse>
         {
+        }
+
+        [Request("http://localhost/test", Method = "POST")]
+        public class ValidatedRequest : IRequestResponse<TestResponse>
+        {
+            [Required(ErrorMessage = "Name is required")]
+            public string? Name { get; set; }
         }
     }
 }
