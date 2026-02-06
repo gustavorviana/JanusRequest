@@ -652,6 +652,46 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
+        public async Task SendAsync_WithUrlBodyAndMethod_UsesCorrectMethodAndPath()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            var result = await _httpApiClient.SendAsync(request, "/api/custom", "POST");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(1, result.Data.Id);
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Method.Method == "POST" &&
+                    req.RequestUri.ToString().Contains("api/custom")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task SendAsync_WithUrlAndBody_UsesGetByDefault()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            var result = await _httpApiClient.SendAsync(request, "/api/users", "GET");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(1, result.Data.Id);
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Method.Method == "GET" &&
+                    req.RequestUri.ToString().Contains("api/users")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
         public void SetAuthentication_WithCustomScheme_SetsAuthorizationHeader()
         {
             // Act

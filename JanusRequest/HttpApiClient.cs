@@ -238,6 +238,21 @@ namespace JanusRequest
         }
 
         /// <summary>
+        /// Sends an HTTP request with the specified URL, request body, and HTTP method.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
+        /// <param name="body">The request body object implementing IRequestResponse.</param>
+        /// <param name="path">The URL path for the request (relative to the client base URL).</param>
+        /// <param name="method">The HTTP method to use. Defaults to GET.</param>
+        /// <param name="cancellationToken">Token to cancel the operation.</param>
+        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        public async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(IRequestResponse<TResponse> body, string path, string method = "GET", CancellationToken cancellationToken = default) where TResponse : class
+        {
+            var info = new HttpRequestInfo { Path = path, Method = method ?? "GET" };
+            return await SendAsync(body, info, cancellationToken);
+        }
+
+        /// <summary>
         /// Sends an HTTP request with the specified request body and returns a typed response.
         /// Uses the HTTP method and path configured in the request body's attributes.
         /// </summary>
