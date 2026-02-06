@@ -397,10 +397,11 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
-        public async Task SendRequestAsync_WithoutGenericType_ReturnsBasicResponse()
+        public async Task SendRequestAsync_WithNullUrlAndEmptyPath_ThrowsInvalidOperationException()
         {
-            var requestBody = new { Id = 1, Name = "Test" };
-            await Assert.ThrowsAsync<InvalidOperationException>(() => _httpApiClient.SendRequestAsync(""));
+            var clientWithoutUrl = new HttpApiClient((string)null) { Settings = _settings };
+            await Assert.ThrowsAsync<InvalidOperationException>(() => clientWithoutUrl.SendRequestAsync(""));
+            clientWithoutUrl.Dispose();
         }
 
         [Fact]
@@ -484,14 +485,14 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
-        public void Path_SyncVersion_CallsAsyncAndWaits()
+        public void Patch_SyncVersion_CallsAsyncAndWaits()
         {
             // Arrange
             var request = new TestRequest();
             SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":5,\"Name\":\"Patched\"}");
 
             // Act
-            var result = _httpApiClient.Path(request);
+            var result = _httpApiClient.Patch(request);
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, result.Status);
@@ -759,7 +760,7 @@ namespace JanusRequest.Tests
 
             // Act & Assert
             var ex = Assert.Throws<InvalidOperationException>(() => client.CreateHttpRequestMessage(info, null));
-            Assert.Contains("Uma URL deve ser definida", ex.Message);
+            Assert.Contains("A URL must be defined.", ex.Message);
 
             client.Dispose();
         }

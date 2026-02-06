@@ -1,4 +1,4 @@
-﻿using JanusRequest.Attributes;
+using JanusRequest.Attributes;
 using System;
 using System.Net.Http;
 
@@ -45,8 +45,8 @@ namespace JanusRequest.ContentTranslator
         /// Deserializes a response string to the specified type.
         /// </summary>
         /// <typeparam name="TResponse">The type to deserialize the response to.</typeparam>
-        /// <param name="resposne">The response string to deserialize.</param>
+        /// <param name="response">The response string to deserialize.</param>
         /// <returns>An instance of TResponse created from the response string.</returns>
-        public abstract TResponse Deserialize<TResponse>(string resposne);
+        public abstract TResponse Deserialize<TResponse>(string response);
     }
 }

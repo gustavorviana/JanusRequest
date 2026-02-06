@@ -1,7 +1,6 @@
 using JanusRequest.Builders;
 using JanusRequest.HttpHandlers;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net;
@@ -20,6 +19,8 @@ namespace JanusRequest
     /// </summary>
     public class HttpApiClient : IDisposable
     {
+        private bool _disposed;
+
         /// <summary>
         /// The default content type string for JSON requests.
         /// </summary>
@@ -34,10 +35,7 @@ namespace JanusRequest
         public HttpApiClientSettings Settings
         {
             get => _settings;
-            set
-            {
-                _settings = value ?? throw new ArgumentNullException(nameof(Settings));
-            }
+            set => _settings = value ?? throw new ArgumentNullException(nameof(Settings));
         }
 
         private readonly bool _disposeHttpClient;
@@ -363,6 +361,9 @@ namespace JanusRequest
 
         protected async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(GetType().FullName);
+
             var response = await InternalSendRequestAsync(request, cancellationToken);
             if (response.IsSuccessStatusCode)
                 return response;
@@ -375,6 +376,9 @@ namespace JanusRequest
 
         private async Task<HttpResponseMessage> InternalSendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(GetType().FullName);
+
             var response = await _httpClient.SendAsync(request, cancellationToken);
             if (response.IsSuccessStatusCode)
                 return response;
@@ -387,15 +391,16 @@ namespace JanusRequest
 
         internal protected virtual HttpRequestMessage CreateHttpRequestMessage(HttpRequestInfo info, object body)
         {
-            if (string.IsNullOrEmpty(Url) && string.IsNullOrEmpty(info.Path))
-                throw new InvalidOperationException("Uma URL deve ser definida.");
+            if (_disposed)
+                throw new ObjectDisposedException(GetType().FullName);
 
             var query = info.Query ?? new UrlQueryBuilder();
 
             if (DefaultArgs != null)
                 query = query.Merge(DefaultArgs);
 
-            var request = new HttpRequestMessage(new HttpMethod(info.Method ?? "GET"), query.BuildUrl(Url, info.Path));
+            var requestUrl = BuildUrl(info, query);
+            var request = new HttpRequestMessage(new HttpMethod(info.Method ?? "GET"), requestUrl);
 
             if (info.Headers != null)
                 foreach (string name in info.Headers)
@@ -407,19 +412,49 @@ namespace JanusRequest
                 request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
             }
 
-            if (body != null && CanAddBody(info.Method) && Settings.TryParseContent(HttpApiClientSettings.GetContentType(body.GetType()), body, out var content))
+            var canAddBody = body != null && CanAddBody(info);
+            if (canAddBody && Settings.TryParseContent(HttpApiClientSettings.GetContentType(body.GetType()), body, out var content))
                 request.Content = content;
 
             return request;
         }
 
-        private bool CanAddBody(string httpMethod)
+        private string BuildUrl(HttpRequestInfo info, UrlQueryBuilder query)
         {
-            return !string.Equals(httpMethod, "GET", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(httpMethod, "DELETE", StringComparison.OrdinalIgnoreCase);
+            if (string.IsNullOrEmpty(Url) && string.IsNullOrEmpty(info.Path))
+                throw new InvalidOperationException("A URL must be defined.");
+
+            if (IsAbsoluteUrl(info.Path))
+                return query.BuildUrl(info.Path);
+
+            return query.BuildUrl(Url, info.Path);
         }
 
-        private HttpRequestInfo ConfigureRequest(HttpRequestInfo info, object request)
+        private static bool IsAbsoluteUrl(string path)
+        {
+            return !string.IsNullOrEmpty(path) &&
+                (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                 path.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool CanAddBody(HttpRequestInfo info)
+        {
+            var httpMethod = info.Method;
+            var allowedMethods = info.AllowNonStandardBody;
+            if (string.Equals(httpMethod, "HEAD", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(httpMethod, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (string.Equals(httpMethod, "GET", StringComparison.OrdinalIgnoreCase))
+                return allowedMethods.HasFlag(NonStandardBodyMethods.Get);
+
+            if (string.Equals(httpMethod, "DELETE", StringComparison.OrdinalIgnoreCase))
+                return allowedMethods.HasFlag(NonStandardBodyMethods.Delete);
+
+            return true;
+        }
+
+        private static HttpRequestInfo ConfigureRequest(HttpRequestInfo info, object request)
         {
             if (info == null)
                 info = new HttpRequestInfo();
@@ -429,14 +464,32 @@ namespace JanusRequest
                 .Build();
         }
 
+        #region IDisposable
+        ~HttpApiClient()
+        {
+            Dispose(false);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing && _disposeHttpClient)
+                _httpClient?.Dispose();
+
+            _disposed = true;
+        }
+
         /// <summary>
         /// Releases all resources used by the HttpApiClient.
         /// If disposeHttpClient was set to true in the constructor, the underlying HttpClient will also be disposed.
         /// </summary>
         public void Dispose()
         {
-            if (_disposeHttpClient)
-                _httpClient?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
+        #endregion
     }
 }

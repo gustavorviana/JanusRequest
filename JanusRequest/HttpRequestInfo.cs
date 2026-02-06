@@ -1,4 +1,4 @@
-﻿using JanusRequest.Builders;
+using JanusRequest.Builders;
 using System.Collections.Specialized;
 using System.Net;
 
@@ -12,12 +12,21 @@ namespace JanusRequest
     public class HttpRequestInfo
     {
         /// <summary>
+        /// Defines which HTTP methods that normally do not use a request body
+        /// are allowed to send one.
+        /// Default is <see cref="NonStandardBodyMethods.None"/>.
+        /// </summary>
+        public NonStandardBodyMethods AllowNonStandardBody { get; set; }
+            = NonStandardBodyMethods.None;
+
+        /// <summary>
         /// Gets or sets the HTTP method for the request (GET, POST, PUT, DELETE, PATCH, etc.).
         /// </summary>
         public string Method { get; set; }
 
         /// <summary>
         /// Gets or sets the URL path for the request.
+        /// When the path starts with http:// or https://, it is treated as an absolute URL and the client base URL is ignored.
         /// </summary>
         public string Path { get; set; }
 

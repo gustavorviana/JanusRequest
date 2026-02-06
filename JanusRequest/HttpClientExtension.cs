@@ -1,4 +1,5 @@
-﻿using System.Linq;
+using System;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 
@@ -77,7 +78,22 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        [Obsolete("Use Patch instead. This method was incorrectly named and will be removed in a future version.")]
         public static RestApiResponse<TResponse> Path<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
+        {
+            return client.PatchAsync(body, info).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a synchronous PATCH request with the specified request body and returns a typed response.
+        /// This is a blocking operation that waits for the asynchronous PATCH operation to complete.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
+        /// <param name="client">The HttpApiClient instance to extend.</param>
+        /// <param name="body">The request body object implementing IRequestResponse.</param>
+        /// <param name="info">Additional request information. Can be null.</param>
+        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        public static RestApiResponse<TResponse> Patch<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.PatchAsync(body, info).GetAwaiter().GetResult();
         }

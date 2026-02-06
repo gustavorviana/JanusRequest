@@ -192,7 +192,7 @@ namespace JanusRequest
                 return dateTime.ToString(DateTimeFormat);
 
             if (value is TimeSpan time)
-                return time.ToString(DateTimeFormat);
+                return time.ToString(TimeFormat);
 
             if (value is IConvertible convertible)
                 return convertible.ToString(_formatProvider);
