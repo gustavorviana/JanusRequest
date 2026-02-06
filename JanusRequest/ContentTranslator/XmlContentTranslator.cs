@@ -26,7 +26,7 @@ namespace JanusRequest.ContentTranslator
         /// <summary>
         /// Gets the HTTP content type handled by this translator.
         /// </summary>
-        public override HttpContentType ContentType { get; } = HttpContentType.Xml;
+        public override string ContentType { get; } = HttpContentType.Xml;
 
         /// <summary>
         /// Deserializes an XML string to the specified type.

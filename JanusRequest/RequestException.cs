@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace JanusRequest
@@ -19,6 +20,11 @@ namespace JanusRequest
         /// Gets the response content from the failed request.
         /// </summary>
         public string Response { get; }
+
+        /// <summary>
+        /// Gets the response headers from request, if available.
+        /// </summary>
+        public IReadOnlyDictionary<string, IReadOnlyList<string>> Headers { get; }
 
         /// <summary>
         /// Gets or sets the URL of the request that caused this exception.
@@ -43,6 +49,29 @@ namespace JanusRequest
         public RequestException(HttpStatusCode code) : base($"Error code: {code}")
         {
             StatusCode = code;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the RequestException class with the specified status code and headers.
+        /// </summary>
+        /// <param name="code">The HTTP status code of the failed request.</param>
+        /// <param name="headers">The response headers from the failed request.</param>
+        public RequestException(HttpStatusCode code, IReadOnlyDictionary<string, IReadOnlyList<string>> headers)
+            : this(code)
+        {
+            Headers = headers;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the RequestException class with the specified status code, response content, and headers.
+        /// </summary>
+        /// <param name="statusCode">The HTTP status code of the failed request.</param>
+        /// <param name="response">The response content from the failed request.</param>
+        /// <param name="headers">The response headers from the failed request.</param>
+        public RequestException(HttpStatusCode statusCode, string response, IReadOnlyDictionary<string, IReadOnlyList<string>> headers)
+            : this(statusCode, response)
+        {
+            Headers = headers;
         }
 
         /// <summary>

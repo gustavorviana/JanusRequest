@@ -38,7 +38,7 @@ namespace JanusRequest
         /// </summary>
         /// <param name="retryAt">The number of seconds after which the request can be retried.</param>
         /// <param name="requestLimit">The maximum number of requests allowed within the rate limit window.</param>
-        public ThrottlingException(int retryAt, int requestLimit) : this(retryAt, requestLimit, "O limite de requisições foi atingido.")
+        public ThrottlingException(int retryAt, int requestLimit) : this(retryAt, requestLimit, "The request limit has been reached.")
         {
         }
 

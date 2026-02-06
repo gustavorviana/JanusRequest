@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net5.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>10.0</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>JanusRequest.Json.Newtonsoft</PackageId>
+    <Title>JanusRequest - Newtonsoft.Json integration</Title>
+    <Authors>Gustavo Viana</Authors>
+    <Description>Optional Newtonsoft.Json integration for JanusRequest, providing an extension method to switch HttpApiClientSettings to use Newtonsoft.Json on .NET 5+.</Description>
+    <PackageProjectUrl>https://github.com/gustavorviana/JanusRequest</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/gustavorviana/JanusRequest</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>janusrequest;http;api;client;json;newtonsoft</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JanusRequest\JanusRequest.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+  </ItemGroup>
+
+</Project>
+

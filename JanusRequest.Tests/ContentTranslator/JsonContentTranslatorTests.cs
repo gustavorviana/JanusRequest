@@ -1,5 +1,6 @@
 ﻿using JanusRequest.ContentTranslator;
 using System.Text;
+using System.Text.Json;
 
 namespace JanusRequest.Tests.ContentTranslator
 {
@@ -132,11 +133,7 @@ namespace JanusRequest.Tests.ContentTranslator
             // Arrange
             var json = "";
 
-            // Act
-            var result = _translator.Deserialize<TestPerson>(json);
-
-            // Assert
-            Assert.Null(result);
+            Assert.Throws<JsonException>(() => _translator.Deserialize<TestPerson>(json));
         }
 
         [Fact]

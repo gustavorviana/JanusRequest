@@ -1,4 +1,5 @@
 ﻿using System;
+
 namespace JanusRequest.Attributes
 {
     /// <summary>
@@ -9,11 +10,27 @@ namespace JanusRequest.Attributes
     [AttributeUsage(AttributeTargets.Class)]
     public class ContentTypeAttribute : Attribute
     {
-        public HttpContentType ContentType { get; }
+        /// <summary>
+        /// Gets the raw HTTP media type string (for example, "application/json").
+        /// This allows specifying custom or vendor-specific content types that are not
+        /// covered by <see cref="HttpContentType"/>.
+        /// </summary>
+        public string MediaType { get; }
 
-        public ContentTypeAttribute(HttpContentType contentType)
+        /// <summary>
+        /// Initializes the attribute using a raw HTTP media type string
+        /// (for example, "application/json").
+        /// </summary>
+        /// <param name="mediaType">The HTTP media type.</param>
+        /// <exception cref="ArgumentException">
+        /// Thrown when <paramref name="mediaType"/> is null or empty.
+        /// </exception>
+        public ContentTypeAttribute(string mediaType)
         {
-            ContentType = contentType;
+            if (string.IsNullOrWhiteSpace(mediaType))
+                throw new ArgumentException("Media type cannot be null or empty.", nameof(mediaType));
+
+            MediaType = mediaType.Trim();
         }
     }
 }

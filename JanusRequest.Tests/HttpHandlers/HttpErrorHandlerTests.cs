@@ -58,7 +58,7 @@ namespace JanusRequest.Tests.HttpHandlers
 
             // Assert
             Assert.IsType<UnauthorizedAccessException>(result);
-            Assert.Equal("O servidor recusou as credenciais da API.", result.Message);
+            Assert.Equal("The server refused the API credentials.", result.Message);
         }
 
         [Fact]

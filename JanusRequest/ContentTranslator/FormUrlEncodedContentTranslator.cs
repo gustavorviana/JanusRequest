@@ -15,7 +15,7 @@ namespace JanusRequest.ContentTranslator
         /// <summary>
         /// Gets the HTTP content type handled by this translator.
         /// </summary>
-        public override HttpContentType ContentType => HttpContentType.FormUrlEncoded;
+        public override string ContentType => HttpContentType.FormUrlEncoded;
 
         /// <summary>
         /// Converts an object to FormUrlEncodedContent for HTTP requests.

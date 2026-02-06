@@ -1,45 +1,44 @@
 ﻿namespace JanusRequest
 {
     /// <summary>
-    /// Specifies the purpose and content type of a class in web request/response scenarios.
-    /// Used as an attribute parameter to indicate how the class data should be interpreted and serialized.
+    /// Defines common HTTP content types used in web request/response scenarios.
+    /// Values represent the media type used for serialization or special handling.
     /// </summary>
-    public enum HttpContentType
+    public static class HttpContentType
     {
         /// <summary>
         /// No specific content type defined. Uses default serialization behavior.
         /// </summary>
-        None = 0,
+        public const string None = "";
 
         /// <summary>
-        /// Class represents form data with file uploads or binary content.
-        /// Will be serialized as multipart/form-data when used in HTTP requests.
+        /// Represents multipart form data, typically used for file uploads.
+        /// Serialized as "multipart/form-data".
         /// </summary>
-        FormData = 1,
+        public const string FormData = "multipart/form-data";
 
         /// <summary>
-        /// Class represents standard form data.
-        /// Will be serialized as application/x-www-form-urlencoded when used in HTTP requests.
+        /// Represents standard form data serialized as
+        /// "application/x-www-form-urlencoded".
         /// </summary>
-        FormUrlEncoded = 2,
+        public const string FormUrlEncoded = "application/x-www-form-urlencoded";
 
         /// <summary>
-        /// Class properties represent query string parameters.
-        /// Will be serialized as URL parameters when used in HTTP requests.
+        /// Represents query string serialization.
+        /// This is not an HTTP Content-Type header value and is internally
+        /// represented as "@query".
         /// </summary>
-        QueryString = 3,
+        public const string QueryString = "@query";
 
         /// <summary>
-        /// Class represents JSON content data.
-        /// Will be serialized as application/json when used in HTTP requests.
+        /// Represents JSON content serialized as "application/json".
         /// </summary>
-        /// 
-        Json = 4,
+        public const string Json = "application/json";
 
         /// <summary>
-        /// Class represents XML content data.
-        /// Will be serialized as application/xml or text/xml when used in HTTP requests.
+        /// Represents XML content serialized as "application/xml".
+        /// Some systems may also use "text/xml".
         /// </summary>
-        Xml = 5
+        public const string Xml = "application/xml";
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -37,9 +38,11 @@ namespace JanusRequest.HttpHandlers
                 return OnThrottling(response);
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
-                return new UnauthorizedAccessException("O servidor recusou as credenciais da API.");
+                return new UnauthorizedAccessException("The server refused the API credentials.");
 
-            return new RequestException(response.StatusCode, await response.Content.ReadAsStringAsync())
+            var headers = Utils.ExtractHeaders(response);
+
+            return new RequestException(response.StatusCode, await response.Content.ReadAsStringAsync(), headers)
             {
                 Url = response.RequestMessage?.RequestUri?.ToString()
             };

@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;net45;net5.0;net6.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>net45;net472;netstandard2.0;net5.0;net7.0;net8.0</TargetFrameworks>
 
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<PackageIcon>icon.png</PackageIcon>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageId>JanusRequest</PackageId>
-		<PackageVersion>1.0.2</PackageVersion>
+		<PackageVersion>2.0.0</PackageVersion>
 		<Title>JanusRequest - HTTP API Client Library</Title>
 		<Authors>Gustavo Viana</Authors>
 		<PackageProjectUrl>https://github.com/gustavorviana/JanusRequest</PackageProjectUrl>
@@ -17,33 +17,58 @@
 		<RepositoryType>git</RepositoryType>
 		<Company />
 		<PackageReleaseNotes>
-			Initial release of JanusRequest library:
-			- HTTP API client with fluent interface
-			- Automatic serialization (JSON, XML, Form Data, Form URL-Encoded)
-			- Advanced error handling and automatic recovery
-			- Authentication support (Basic, Bearer, API Key)
-			- Throttling and rate limiting management
-			- Attribute-based request configuration
-			- Synchronous and asynchronous extensions
+			Core improvements and integrations:
+			- Added configurable per-request timeout support
+			- Added support for non-standard body methods via NonStandardBodyMethods
+			- Improved absolute URL handling for request paths
+			- Extended RequestException to carry response headers
+			- Introduced IHttpApiClientLogger hook for structured logging
+			- Added generic RetryRecoveryHandler for transient failures
+			- Introduced media-type based content resolution with structured suffix support
+			(e.g. application/error+json falling back to application/json, with exact overrides winning)
+			- Made System.Text.Json the default JSON serializer for netstandard2.0+/net472+/net5.0+,
+			keeping Newtonsoft.Json only for legacy targets
+			- Added global content translator registration API for custom media types
+			- Improved non-success response handling to avoid deserializing empty/invalid bodies
+			when no HttpErrorHandler is registered
+			- Fixed minor bugs and significantly expanded unit test coverage
 		</PackageReleaseNotes>
 		<PackageTags>http;api;client;rest;json;xml;authentication;serialization;retry;throttling;fluent;async;error-handling;recovery;attributes</PackageTags>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
-	</ItemGroup>
-
-	<ItemGroup >
-		<Reference Include="System.ComponentModel.DataAnnotations" Condition="'$(TargetFramework)' == 'net45'" />
-		<Reference Include="System.Net.Http" Condition="'$(TargetFramework)' == 'net45'" />
-	</ItemGroup>
-
 	<ItemGroup Condition="'$(TargetFramework)' == 'net45'">
 		<Reference Include="System.Web" />
+		<Reference Include="System.ComponentModel.DataAnnotations" />
+		<Reference Include="System.Net.Http" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+	</ItemGroup>
+	
+	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+		<Reference Include="System.Web" />
+		<Reference Include="System.ComponentModel.DataAnnotations" />
+		<Reference Include="System.Net.Http" />
+		<PackageReference Include="System.Text.Json">
+			<Version>8.0.5</Version>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+		<PackageReference Include="System.Text.Json">
+			<Version>8.0.5</Version>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
+		<PackageReference Include="System.Text.Json">
+			<Version>8.0.5</Version>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+		<PackageReference Include="System.Text.Json">
+			<Version>8.0.5</Version>
+		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -56,5 +81,4 @@
 			<PackagePath>\</PackagePath>
 		</None>
 	</ItemGroup>
-
 </Project>

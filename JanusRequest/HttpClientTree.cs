@@ -82,10 +82,10 @@ namespace JanusRequest
             if (name.EndsWith("()"))
             {
                 var methodName = name.Substring(0, name.Length - 2);
-                return $"Método \"{methodName}\" não encontrado no caminho. Segmento inválido na posição {index}.";
+                return $"Method \"{methodName}\" not found in path. Invalid segment at position {index}.";
             }
 
-            return $"Propriedade \"{name}\" não encontrada no caminho. Segmento inválido na posição {index}.";
+            return $"Property \"{name}\" not found in path. Invalid segment at position {index}.";
         }
 
         private static bool IsValidMethod(MethodInfo method)
@@ -132,7 +132,7 @@ namespace JanusRequest
                 if (member is MethodInfo method)
                     return new MethodNode(method);
 
-                throw new NotSupportedException($"O membro {member.MemberType} não é suportado.");
+                throw new NotSupportedException($"Member type {member.MemberType} is not supported.");
             }
 
             public void Map()

@@ -78,7 +78,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        [Obsolete("Use Patch instead. This method was incorrectly named and will be removed in a future version.")]
+        [Obsolete("Use Patch instead. This method was incorrectly named and will be removed in version 1.0.4.")]
         public static RestApiResponse<TResponse> Path<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.PatchAsync(body, info).GetAwaiter().GetResult();

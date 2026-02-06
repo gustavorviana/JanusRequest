@@ -38,13 +38,19 @@ namespace JanusRequest
             set => _settings = value ?? throw new ArgumentNullException(nameof(Settings));
         }
 
+        /// <summary>
+        /// Gets or sets the logger used to record HTTP requests, responses, and errors.
+        /// When null, no logging is performed by this client.
+        /// </summary>
+        public IHttpApiClientLogger Logger { get; set; }
+
         private readonly bool _disposeHttpClient;
         private readonly HttpClient _httpClient;
 
         /// <summary>
         /// Gets the base URL for this HTTP API client.
         /// </summary>
-        public string Url { get; }
+        public string Url { get; set; }
 
         /// <summary>
         /// Gets or sets the default query arguments that will be added to all requests.
@@ -271,8 +277,7 @@ namespace JanusRequest
                     return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings));
 
                 var content = await response.Content.ReadAsStringAsync();
-                var type = HttpApiClientSettings.GetContentType(body.GetType()) ?? Settings.DefaultContentType;
-                return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content, type));
+                return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content, Settings.DefaultContentType));
             }
         }
 
@@ -289,6 +294,9 @@ namespace JanusRequest
             using (var response = await SendHttpRequestAsync(null, info, cancellationToken))
             {
                 if (response.StatusCode == HttpStatusCode.NoContent)
+                    return new RestApiResponse<TResponse>(response, default);
+
+                if (!response.IsSuccessStatusCode)
                     return new RestApiResponse<TResponse>(response, default);
 
                 var deserializer = GetDeserializer<TResponse>(typeof(TResponse), response);
@@ -364,12 +372,32 @@ namespace JanusRequest
             if (_disposed)
                 throw new ObjectDisposedException(GetType().FullName);
 
-            var response = await InternalSendRequestAsync(request, cancellationToken);
+            Logger?.LogRequest(request);
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await InternalSendRequestAsync(request, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Logger?.LogError(ex, request, null);
+                throw;
+            }
+
+            Logger?.LogResponse(response);
+
             if (response.IsSuccessStatusCode)
                 return response;
 
             if (Settings.TryGetHandler<HttpErrorHandler>(response, out var handler))
-                throw await handler.MapExceptionAsync(response);
+            {
+                var mapped = await handler.MapExceptionAsync(response);
+                Logger?.LogError(mapped, request, response);
+                throw mapped;
+            }
+
+            Logger?.LogError(new RequestException(response.StatusCode, Utils.ExtractHeaders(response)), request, response);
 
             return response;
         }
@@ -413,7 +441,7 @@ namespace JanusRequest
             }
 
             var canAddBody = body != null && CanAddBody(info);
-            if (canAddBody && Settings.TryParseContent(HttpApiClientSettings.GetContentType(body.GetType()), body, out var content))
+            if (canAddBody && Settings.TryParseContent(HttpApiClientSettings.GetMediaType(body.GetType()), body, out var content))
                 request.Content = content;
 
             return request;
@@ -441,7 +469,9 @@ namespace JanusRequest
         {
             var httpMethod = info.Method;
             var allowedMethods = info.AllowNonStandardBody;
-            if (string.Equals(httpMethod, "HEAD", StringComparison.OrdinalIgnoreCase) &&
+
+            // HEAD and OPTIONS should never include a body
+            if (string.Equals(httpMethod, "HEAD", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(httpMethod, "OPTIONS", StringComparison.OrdinalIgnoreCase))
                 return false;
 

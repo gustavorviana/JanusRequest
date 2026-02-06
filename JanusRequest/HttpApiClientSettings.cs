@@ -3,11 +3,10 @@ using JanusRequest.ContentTranslator;
 using JanusRequest.HttpHandlers;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Mime;
 using System.Reflection;
 
 namespace JanusRequest
@@ -19,12 +18,20 @@ namespace JanusRequest
     /// </summary>
     public class HttpApiClientSettings
     {
-        private readonly ConcurrentDictionary<HttpContentType, ContentTypeTranslator> _contentTypeTranslator = new ConcurrentDictionary<HttpContentType, ContentTypeTranslator>();
+        private readonly MediaTypeMap<ContentTypeTranslator> _contentTypeTranslator = new MediaTypeMap<ContentTypeTranslator>();
         private readonly ConcurrentDictionary<Type, HttpClientTree> _httpClientTree = new ConcurrentDictionary<Type, HttpClientTree>();
         private static readonly BufferContentBuilder _bufferReader = new BufferContentBuilder();
         private IFormatProvider _formatProvider = CultureInfo.InvariantCulture;
         private static HttpApiClientSettings _default = new HttpApiClientSettings();
         private IHttpHandlerBase[] _handlers = new IHttpHandlerBase[0];
+
+        /// <summary>
+        /// Global content translator overrides keyed by content type name.
+        /// When a translator is registered here, it will replace the default
+        /// translator for that content type in all future settings instances.
+        /// </summary>
+        private static readonly ConcurrentDictionary<string, Func<ContentTypeTranslator>> GlobalContentTranslators =
+            new ConcurrentDictionary<string, Func<ContentTypeTranslator>>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Gets or sets the format string used for DateTime serialization.
@@ -59,17 +66,56 @@ namespace JanusRequest
             set => _default = value ?? throw new ArgumentNullException(nameof(Default));
         }
 
+        private string _defaultMediaType = HttpContentType.Json;
+
         /// <summary>
         /// Gets or sets the default content type used when no specific content type is specified.
-        /// Default value is HttpContentType.Json.
+        /// This property is kept for backward compatibility and simply proxies
+        /// to <see cref="DefaultMediaType"/>.
         /// </summary>
-        public HttpContentType DefaultContentType { get; set; } = HttpContentType.Json;
+        /// <remarks>
+        /// This property is obsolete. Use <see cref="DefaultMediaType"/> instead.
+        /// </remarks>
+        [Obsolete("Use " + nameof(DefaultMediaType) + " instead.")]
+        public string DefaultContentType
+        {
+            get => DefaultMediaType;
+            set => DefaultMediaType = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the default HTTP media type used when sending request content
+        /// when no specific content type is explicitly provided.
+        /// </summary>
+        /// <remarks>
+        /// The value cannot be null or empty and should contain a valid media type,
+        /// such as "application/json".
+        /// </remarks>
+        public string DefaultMediaType
+        {
+            get => _defaultMediaType;
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    throw new InvalidOperationException(
+                        $"{nameof(DefaultMediaType)} cannot be null or empty.");
+
+                _defaultMediaType = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets whether to validate request models using DataAnnotations before sending.
         /// Default value is true to maintain backward compatibility.
         /// </summary>
         public bool ValidateRequest { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether response headers should be included in error logs
+        /// produced by <see cref="IHttpApiClientLogger"/> implementations.
+        /// Default is false to avoid noisy logs and potential sensitive data exposure.
+        /// </summary>
+        public bool LogResponseHeadersOnError { get; set; } = false;
 
         /// <summary>
         /// Initializes a new instance of the HttpApiClientSettings class with default content translators.
@@ -110,19 +156,43 @@ namespace JanusRequest
         }
 
         /// <summary>
+        /// Registers a global content translator override for the specified content type
+        /// (for example, "application/json").
+        /// This affects all future <see cref="HttpApiClientSettings"/> instances created after
+        /// the registration. If <paramref name="factory"/> is null, the override is removed.
+        /// </summary>
+        /// <param name="contentType">The content type value, e.g. "application/json".</param>
+        /// <param name="factory">Factory that creates the translator instance, or null to remove.</param>
+        public static void RegisterGlobalContentTranslator(string contentType, Func<ContentTypeTranslator> factory)
+        {
+            if (string.IsNullOrWhiteSpace(contentType))
+                throw new ArgumentException("Content type cannot be null or empty.", nameof(contentType));
+
+            contentType = contentType.Trim().ToLowerInvariant();
+
+            if (factory == null)
+            {
+                GlobalContentTranslators.TryRemove(contentType, out _);
+                return;
+            }
+
+            GlobalContentTranslators[contentType] = factory;
+        }
+
+        /// <summary>
         /// Deserializes a string content to the specified response type using the appropriate content translator.
         /// Uses the content type specified in the type's ContentTypeAttribute, or the provided default, or the DefaultContentType.
         /// </summary>
         /// <typeparam name="TResponse">The type to deserialize the content to.</typeparam>
         /// <param name="content">The string content to deserialize.</param>
-        /// <param name="defaultRequestContentType">The default content type to use if none is specified. Can be null.</param>
+        /// <param name="defaultMediaType">The default content type to use if none is specified. Can be null.</param>
         /// <returns>An instance of TResponse created from the content string.</returns>
         /// <exception cref="NotSupportedException">Thrown when no translator is found for the content type.</exception>
-        public TResponse Deserialize<TResponse>(string content, HttpContentType? defaultRequestContentType = null)
+        public TResponse Deserialize<TResponse>(string content, string defaultMediaType = null)
         {
-            var type = GetContentType(typeof(TResponse)) ?? defaultRequestContentType ?? DefaultContentType;
+            var type = GetMediaType(typeof(TResponse)) ?? defaultMediaType ?? DefaultMediaType;
             if (!_contentTypeTranslator.TryGetValue(type, out var translator))
-                throw new NotSupportedException($"O tipo {type} não tem um tradutor conversor definido.");
+                throw new NotSupportedException($"Type {type} does not have a defined converter translator.");
 
             return translator.Deserialize<TResponse>(content);
         }
@@ -135,7 +205,7 @@ namespace JanusRequest
         /// <param name="request">The object to parse into HttpContent.</param>
         /// <param name="content">When this method returns, contains the HttpContent if successful, null otherwise.</param>
         /// <returns>True if the object was successfully parsed into HttpContent, false otherwise.</returns>
-        public bool TryParseContent(HttpContentType? contentType, object request, out HttpContent content)
+        public bool TryParseContent(string contentType, object request, out HttpContent content)
         {
             if (contentType == null)
             {
@@ -201,13 +271,15 @@ namespace JanusRequest
         }
 
         /// <summary>
-        /// Gets the HTTP content type specified by the ContentTypeAttribute on the given type.
+        /// Gets the media type specified by <see cref="ContentTypeAttribute"/> on the given type.
         /// </summary>
-        /// <param name="type">The type to check for ContentTypeAttribute.</param>
-        /// <returns>The HttpContentType if the attribute is present, null otherwise.</returns>
-        internal static HttpContentType? GetContentType(Type type)
+        /// <param name="type">The type to inspect for <see cref="ContentTypeAttribute"/>.</param>
+        /// <returns>
+        /// The media type string if defined in the attribute; otherwise, null.
+        /// </returns>
+        internal static string GetMediaType(Type type)
         {
-            return type.GetCustomAttribute<ContentTypeAttribute>()?.ContentType;
+            return type.GetCustomAttribute<ContentTypeAttribute>()?.MediaType;
         }
 
         /// <summary>

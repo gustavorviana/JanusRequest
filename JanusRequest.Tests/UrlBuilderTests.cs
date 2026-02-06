@@ -142,7 +142,7 @@ namespace JanusRequest.Tests
 
             // Act & Assert
             var ex = Assert.Throws<ArgumentException>(() => urlBuilder.Build(parameters));
-            Assert.Equal($"Propriedade \"nonExistent\" não encontrada no caminho. Segmento inválido na posição 0.", ex.Message);
+            Assert.Equal($"Property \"nonExistent\" not found in path. Invalid segment at position 0.", ex.Message);
         }
 
         [Fact]
@@ -280,7 +280,7 @@ namespace JanusRequest.Tests
 
             // Act & Assert
             var ex = Assert.Throws<ArgumentException>(() => urlBuilder.Build(parameters));
-            Assert.Equal($"Método \"NonExistentMethod\" não encontrado no caminho. Segmento inválido na posição 0.", ex.Message);
+            Assert.Equal($"Method \"NonExistentMethod\" not found in path. Invalid segment at position 0.", ex.Message);
         }
 
         [Fact]

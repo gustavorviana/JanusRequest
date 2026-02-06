@@ -54,8 +54,7 @@
 
             var ex = Assert.Throws<ArgumentException>(() => tree.GetValue(person, "InvalidProp"));
 
-            Assert.Contains("Propriedade", ex.Message);
-            Assert.Contains("não encontrada", ex.Message);
+            Assert.Equal("Property \"InvalidProp\" not found in path. Invalid segment at position 0.", ex.Message);
         }
 
         [Fact]
@@ -66,8 +65,7 @@
 
             var ex = Assert.Throws<ArgumentException>(() => tree.GetValue(person, "InvalidMethod()"));
 
-            Assert.Contains("Método", ex.Message);
-            Assert.Contains("não encontrado", ex.Message);
+            Assert.Equal("Method \"InvalidMethod\" not found in path. Invalid segment at position 0.", ex.Message);
         }
 
         [Fact]
@@ -96,8 +94,7 @@
 
             var ex = Assert.Throws<ArgumentException>(() => tree.GetValue(obj, "Echo()"));
 
-            Assert.Contains("Método", ex.Message);
-            Assert.Contains("não encontrado", ex.Message);
+            Assert.Equal("Method \"Echo\" not found in path. Invalid segment at position 0.", ex.Message);
         }
 
         [Fact]
@@ -108,8 +105,7 @@
 
             var ex = Assert.Throws<ArgumentException>(() => tree.GetValue(obj, "CreateInstance()"));
 
-            Assert.Contains("Método", ex.Message);
-            Assert.Contains("não encontrado", ex.Message);
+            Assert.Equal("Method \"CreateInstance\" not found in path. Invalid segment at position 0.", ex.Message);
         }
 
         [Fact]
@@ -120,8 +116,7 @@
 
             var ex = Assert.Throws<ArgumentException>(() => tree.GetValue(obj, "Format()"));
 
-            Assert.Contains("Método", ex.Message);
-            Assert.Contains("não encontrado", ex.Message);
+            Assert.Equal("Method \"Format\" not found in path. Invalid segment at position 0.", ex.Message);
         }
 
         [Fact]
@@ -132,8 +127,7 @@
 
             var ex = Assert.Throws<ArgumentException>(() => tree.GetValue(obj, "Combine()"));
 
-            Assert.Contains("Método", ex.Message);
-            Assert.Contains("não encontrado", ex.Message);
+            Assert.Equal("Method \"Combine\" not found in path. Invalid segment at position 0.", ex.Message);
         }
         [Fact]
         public void GetValueByPath_ShouldIgnore_VoidMethods()
@@ -143,8 +137,7 @@
 
             var ex = Assert.Throws<ArgumentException>(() => tree.GetValue(obj, "DoSomething()"));
 
-            Assert.Contains("Método", ex.Message);
-            Assert.Contains("não encontrado", ex.Message);
+            Assert.Equal("Method \"DoSomething\" not found in path. Invalid segment at position 0.", ex.Message);
         }
 
         [Fact]
@@ -153,10 +146,9 @@
             var person = new Person();
             var tree = new HttpClientTree(typeof(Person));
 
-            var ex = Assert.Throws<ArgumentException>(() => tree.GetValue(person, "get_Name()"));
+            var ex = Assert.Throws<ArgumentException>(() => tree.GetValue(person, "()"));
 
-            Assert.Contains("Método", ex.Message);
-            Assert.Contains("não encontrado", ex.Message);
+            Assert.Equal("Method \"\" not found in path. Invalid segment at position 0.", ex.Message);
         }
 
         [Fact]

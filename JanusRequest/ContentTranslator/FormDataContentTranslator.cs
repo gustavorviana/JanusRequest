@@ -15,7 +15,7 @@ namespace JanusRequest.ContentTranslator
         /// <summary>
         /// Gets the HTTP content type handled by this translator.
         /// </summary>
-        public override HttpContentType ContentType => HttpContentType.FormData;
+        public override string ContentType => HttpContentType.FormData;
 
         /// <summary>
         /// Converts an object to MultipartFormDataContent for HTTP requests.

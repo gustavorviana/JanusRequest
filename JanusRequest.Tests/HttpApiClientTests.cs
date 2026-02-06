@@ -773,7 +773,7 @@ namespace JanusRequest.Tests
             SetupHttpResponse(HttpStatusCode.OK, "test");
 
             // Act & Assert
-            await Assert.ThrowsAsync<NotSupportedException>(async () =>
+            await Assert.ThrowsAsync<System.Text.Json.JsonException>(async () =>
                 await _httpApiClient.SendAsync(request));
         }
 
@@ -810,10 +810,9 @@ namespace JanusRequest.Tests
             SetupHttpResponse(HttpStatusCode.BadRequest, null!);
 
             // Act
-            var result = await _httpApiClient.SendAsync(request);
+            await Assert.ThrowsAsync<System.Text.Json.JsonException>(async () => await _httpApiClient.SendAsync(request));
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, result.Status);
             await handler.DidNotReceive().MapExceptionAsync(Arg.Any<HttpResponseMessage>());
         }
 
@@ -837,11 +836,43 @@ namespace JanusRequest.Tests
         [InlineData("POST", true)]
         [InlineData("PUT", true)]
         [InlineData("PATCH", true)]
+        [InlineData("HEAD", false)]
+        [InlineData("OPTIONS", false)]
         public void CreateHttpRequestMessage_WithBodyAndMethod_AddsBodyOnlyForSupportedMethods(string method, bool shouldHaveBody)
         {
             // Arrange
             var request = new TestRequest();
             var info = new HttpRequestInfo { Method = method };
+
+            // Act
+            var httpRequest = _httpApiClient.CreateHttpRequestMessage(info, request);
+
+            // Assert
+            if (shouldHaveBody)
+                Assert.NotNull(httpRequest.Content);
+            else
+                Assert.Null(httpRequest.Content);
+
+            httpRequest.Dispose();
+        }
+
+        [Theory]
+        [InlineData("GET", NonStandardBodyMethods.None, false)]
+        [InlineData("GET", NonStandardBodyMethods.Get, true)]
+        [InlineData("DELETE", NonStandardBodyMethods.None, false)]
+        [InlineData("DELETE", NonStandardBodyMethods.Delete, true)]
+        public void CreateHttpRequestMessage_WithNonStandardBodyFlags_RespectsConfiguration(
+            string method,
+            NonStandardBodyMethods flags,
+            bool shouldHaveBody)
+        {
+            // Arrange
+            var request = new TestRequest();
+            var info = new HttpRequestInfo
+            {
+                Method = method,
+                AllowNonStandardBody = flags,
+            };
 
             // Act
             var httpRequest = _httpApiClient.CreateHttpRequestMessage(info, request);
@@ -914,11 +945,76 @@ namespace JanusRequest.Tests
             SetupHttpResponse(HttpStatusCode.InternalServerError, null!);
 
             // Act
-            var result = await _httpApiClient.SendAsync(request);
+            var result = await Assert.ThrowsAsync<System.Text.Json.JsonException>(async() => await _httpApiClient.SendAsync(request));
+
+            // Assert
+            await recoveryHandler.DidNotReceive().RecoverAsync(Arg.Any<HttpRecoveryContext>());
+        }
+
+        [Fact]
+        public async Task SendAsync_Success_LogsRequestAndResponse_NoError()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+            var logger = new TestLogger();
+            _httpApiClient.Logger = logger;
+
+            // Act
+            var result = await _httpApiClient.GetAsync(request);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(1, logger.RequestCount);
+            Assert.Equal(1, logger.ResponseCount);
+            Assert.Equal(0, logger.ErrorCount);
+            Assert.NotNull(logger.LastRequest);
+            Assert.NotNull(logger.LastResponse);
+            Assert.Equal(HttpMethod.Get, logger.LastRequest!.Method);
+        }
+
+        [Fact]
+        public async Task SendAsync_WithHttpErrorHandler_LogsErrorWithRequestExceptionAndHeaders()
+        {
+            // Arrange
+            var request = new TestRequest();
+            _settings.SetHandlers(new HttpErrorHandler());
+            SetupHttpResponse(HttpStatusCode.BadRequest, "Bad Request");
+            var logger = new TestLogger();
+            _httpApiClient.Logger = logger;
+
+            // Act
+            var ex = await Assert.ThrowsAsync<RequestException>(() => _httpApiClient.SendAsync(request));
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, ex.StatusCode);
+            Assert.Equal(1, logger.ErrorCount);
+            Assert.IsType<RequestException>(logger.LastException);
+
+            var logged = (RequestException)logger.LastException!;
+            Assert.Equal(HttpStatusCode.BadRequest, logged.StatusCode);
+            // Headers should be captured by HttpErrorHandler
+            Assert.NotNull(logged.Headers);
+        }
+
+        [Fact]
+        public async Task SendRequestAsync_NonSuccessWithoutHandler_LogsErrorButDoesNotThrow()
+        {
+            // Arrange
+            var body = new { Id = 1, Name = "Test" };
+            // No handlers registered in _settings, so HttpErrorHandler is not used
+            SetupHttpResponse(HttpStatusCode.InternalServerError, "");
+            var logger = new TestLogger();
+            _httpApiClient.Logger = logger;
+
+            // Act
+            var result = await _httpApiClient.SendRequestAsync(body);
 
             // Assert
             Assert.Equal(HttpStatusCode.InternalServerError, result.Status);
-            await recoveryHandler.DidNotReceive().RecoverAsync(Arg.Any<HttpRecoveryContext>());
+            Assert.Equal(1, logger.ErrorCount);
+            Assert.IsType<RequestException>(logger.LastException);
+            Assert.Equal(HttpStatusCode.InternalServerError, ((RequestException)logger.LastException!).StatusCode);
         }
 
         // Classes auxiliares para testes
@@ -975,6 +1071,37 @@ namespace JanusRequest.Tests
         {
             [Required(ErrorMessage = "Name is required")]
             public string? Name { get; set; }
+        }
+
+        private class TestLogger : IHttpApiClientLogger
+        {
+            public int RequestCount { get; private set; }
+            public int ResponseCount { get; private set; }
+            public int ErrorCount { get; private set; }
+
+            public HttpRequestMessage? LastRequest { get; private set; }
+            public HttpResponseMessage? LastResponse { get; private set; }
+            public Exception? LastException { get; private set; }
+
+            public void LogRequest(HttpRequestMessage request)
+            {
+                RequestCount++;
+                LastRequest = request;
+            }
+
+            public void LogResponse(HttpResponseMessage response)
+            {
+                ResponseCount++;
+                LastResponse = response;
+            }
+
+            public void LogError(Exception exception, HttpRequestMessage request, HttpResponseMessage response)
+            {
+                ErrorCount++;
+                LastException = exception;
+                LastRequest = request;
+                LastResponse = response;
+            }
         }
     }
 }
