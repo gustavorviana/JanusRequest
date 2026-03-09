@@ -14,6 +14,32 @@ namespace JanusRequest
         #region Sync Request
 
         /// <summary>
+        /// Sends a synchronous GET request to the specified URL without a body and returns a typed response.
+        /// This is a blocking operation that waits for the asynchronous GET operation to complete.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
+        /// <param name="client">The HttpApiClient instance to extend.</param>
+        /// <param name="url">The URL to send the GET request to.</param>
+        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        public static RestApiResponse<TResponse> Get<TResponse>(this HttpApiClient client, string url) where TResponse : class
+        {
+            return client.GetAsync<TResponse>(url).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a synchronous GET request using the specified request information without a body and returns a typed response.
+        /// This is a blocking operation that waits for the asynchronous GET operation to complete.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
+        /// <param name="client">The HttpApiClient instance to extend.</param>
+        /// <param name="info">The request information including path, headers, and query parameters.</param>
+        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        public static RestApiResponse<TResponse> Get<TResponse>(this HttpApiClient client, HttpRequestInfo info) where TResponse : class
+        {
+            return client.GetAsync<TResponse>(info).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
         /// Sends a synchronous GET request with the specified request body and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous GET operation to complete.
         /// </summary>
@@ -25,6 +51,20 @@ namespace JanusRequest
         public static RestApiResponse<TResponse> Get<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.GetAsync(body, info).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a synchronous GET request with the specified request body to the given URL and returns a typed response.
+        /// This is a blocking operation that waits for the asynchronous GET operation to complete.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
+        /// <param name="client">The HttpApiClient instance to extend.</param>
+        /// <param name="body">The request body object implementing IRequestResponse.</param>
+        /// <param name="url">The URL to send the request to.</param>
+        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        public static RestApiResponse<TResponse> Get<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
+        {
+            return client.GetAsync(body, url).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -42,6 +82,20 @@ namespace JanusRequest
         }
 
         /// <summary>
+        /// Sends a synchronous POST request with the specified request body to the given URL and returns a typed response.
+        /// This is a blocking operation that waits for the asynchronous POST operation to complete.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
+        /// <param name="client">The HttpApiClient instance to extend.</param>
+        /// <param name="body">The request body object implementing IRequestResponse.</param>
+        /// <param name="url">The URL to send the request to.</param>
+        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        public static RestApiResponse<TResponse> Post<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
+        {
+            return client.PostAsync(body, url).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
         /// Sends a synchronous PUT request with the specified request body and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous PUT operation to complete.
         /// </summary>
@@ -56,6 +110,20 @@ namespace JanusRequest
         }
 
         /// <summary>
+        /// Sends a synchronous PUT request with the specified request body to the given URL and returns a typed response.
+        /// This is a blocking operation that waits for the asynchronous PUT operation to complete.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
+        /// <param name="client">The HttpApiClient instance to extend.</param>
+        /// <param name="body">The request body object implementing IRequestResponse.</param>
+        /// <param name="url">The URL to send the request to.</param>
+        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        public static RestApiResponse<TResponse> Put<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
+        {
+            return client.PutAsync(body, url).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
         /// Sends a synchronous DELETE request with the specified request body and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous DELETE operation to complete.
         /// </summary>
@@ -67,6 +135,20 @@ namespace JanusRequest
         public static RestApiResponse<TResponse> Delete<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.DeleteAsync(body, info).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a synchronous DELETE request with the specified request body to the given URL and returns a typed response.
+        /// This is a blocking operation that waits for the asynchronous DELETE operation to complete.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
+        /// <param name="client">The HttpApiClient instance to extend.</param>
+        /// <param name="body">The request body object implementing IRequestResponse.</param>
+        /// <param name="url">The URL to send the request to.</param>
+        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        public static RestApiResponse<TResponse> Delete<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
+        {
+            return client.DeleteAsync(body, url).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -96,6 +178,20 @@ namespace JanusRequest
         public static RestApiResponse<TResponse> Patch<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.PatchAsync(body, info).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a synchronous PATCH request with the specified request body to the given URL and returns a typed response.
+        /// This is a blocking operation that waits for the asynchronous PATCH operation to complete.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
+        /// <param name="client">The HttpApiClient instance to extend.</param>
+        /// <param name="body">The request body object implementing IRequestResponse.</param>
+        /// <param name="url">The URL to send the request to.</param>
+        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        public static RestApiResponse<TResponse> Patch<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
+        {
+            return client.PatchAsync(body, url).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -166,6 +262,21 @@ namespace JanusRequest
         public static RestApiResponse<TResponse> Send<TResponse>(this HttpApiClient client, string httpMethod, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.SendAsync(httpMethod, body, info).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a synchronous HTTP request with the specified method, request body, and URL, and returns a typed response.
+        /// This is a blocking operation that waits for the asynchronous operation to complete.
+        /// </summary>
+        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
+        /// <param name="client">The HttpApiClient instance to extend.</param>
+        /// <param name="httpMethod">The HTTP method to use (GET, POST, PUT, DELETE, PATCH, etc.).</param>
+        /// <param name="body">The request body object implementing IRequestResponse.</param>
+        /// <param name="url">The URL to send the request to.</param>
+        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
+        public static RestApiResponse<TResponse> Send<TResponse>(this HttpApiClient client, string httpMethod, IRequestResponse<TResponse> body, string url) where TResponse : class
+        {
+            return client.SendAsync(httpMethod, body, url).GetAwaiter().GetResult();
         }
 
         #endregion

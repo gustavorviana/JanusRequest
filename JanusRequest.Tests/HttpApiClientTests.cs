@@ -621,6 +621,334 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
+        public async Task GetAsync_BodilessStringUrl_SendsGetToCorrectUrl()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            var result = await _httpApiClient.GetAsync<TestResponse>("/api/items");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(1, result.Data.Id);
+            Assert.Equal("Test", result.Data.Name);
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Method.Method == "GET" &&
+                    req.RequestUri!.ToString().Contains("api/items")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task GetAsync_BodilessStringUrl_HasNoRequestBody()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            await _httpApiClient.GetAsync<TestResponse>("/api/items");
+
+            // Assert
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req => req.Content == null),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task GetAsync_BodilessHttpRequestInfo_ForcesGetMethod()
+        {
+            // Arrange
+            var info = new HttpRequestInfo { Method = "POST", Path = "/api/items" };
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            var result = await _httpApiClient.GetAsync<TestResponse>(info);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(1, result.Data.Id);
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Method.Method == "GET" &&
+                    req.RequestUri!.ToString().Contains("api/items")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task GetAsync_BodilessHttpRequestInfo_PreservesOriginalInfoMethod()
+        {
+            // Arrange - Verify Clone doesn't mutate the original
+            var info = new HttpRequestInfo { Method = "POST", Path = "/api/items" };
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            await _httpApiClient.GetAsync<TestResponse>(info);
+
+            // Assert - Original info should still have POST
+            Assert.Equal("POST", info.Method);
+        }
+
+        [Fact]
+        public async Task GetAsync_BodilessHttpRequestInfo_HasNoRequestBody()
+        {
+            // Arrange
+            var info = new HttpRequestInfo { Path = "/api/items" };
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            await _httpApiClient.GetAsync<TestResponse>(info);
+
+            // Assert
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req => req.Content == null),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public void Get_BodilessSyncStringUrl_ReturnsResponse()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            var result = _httpApiClient.Get<TestResponse>("/api/items");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(1, result.Data.Id);
+            Assert.Equal("Test", result.Data.Name);
+        }
+
+        [Fact]
+        public void Get_BodilessSyncHttpRequestInfo_ReturnsResponse()
+        {
+            // Arrange
+            var info = new HttpRequestInfo { Method = "PUT", Path = "/api/items" };
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":2,\"Name\":\"Synced\"}");
+
+            // Act
+            var result = _httpApiClient.Get<TestResponse>(info);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(2, result.Data.Id);
+            Assert.Equal("Synced", result.Data.Name);
+        }
+
+        // US-012: Unit tests for body + string URL overloads
+
+        [Fact]
+        public async Task GetAsync_BodyStringUrl_SendsGetWithBodyToCorrectUrl()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            var result = await _httpApiClient.GetAsync(request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(1, result.Data.Id);
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Method.Method == "GET" &&
+                    req.RequestUri!.ToString().Contains("api/custom")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task PostAsync_BodyStringUrl_SendsPostWithBodyToCorrectUrl()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":2,\"Name\":\"Posted\"}");
+
+            // Act
+            var result = await _httpApiClient.PostAsync(request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(2, result.Data.Id);
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Method.Method == "POST" &&
+                    req.RequestUri!.ToString().Contains("api/custom")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task PutAsync_BodyStringUrl_SendsPutWithBodyToCorrectUrl()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":3,\"Name\":\"Updated\"}");
+
+            // Act
+            var result = await _httpApiClient.PutAsync(request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(3, result.Data.Id);
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Method.Method == "PUT" &&
+                    req.RequestUri!.ToString().Contains("api/custom")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task DeleteAsync_BodyStringUrl_SendsDeleteWithBodyToCorrectUrl()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":4,\"Name\":\"Deleted\"}");
+
+            // Act
+            var result = await _httpApiClient.DeleteAsync(request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(4, result.Data.Id);
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Method.Method == "DELETE" &&
+                    req.RequestUri!.ToString().Contains("api/custom")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task PatchAsync_BodyStringUrl_SendsPatchWithBodyToCorrectUrl()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":5,\"Name\":\"Patched\"}");
+
+            // Act
+            var result = await _httpApiClient.PatchAsync(request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(5, result.Data.Id);
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Method.Method == "PATCH" &&
+                    req.RequestUri!.ToString().Contains("api/custom")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task SendAsync_BodyStringUrl_SendsCorrectMethodWithBodyToCorrectUrl()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":6,\"Name\":\"Sent\"}");
+
+            // Act
+            var result = await _httpApiClient.SendAsync("PUT", request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(6, result.Data.Id);
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Method.Method == "PUT" &&
+                    req.RequestUri!.ToString().Contains("api/custom")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public void Get_SyncBodyStringUrl_ReturnsResponse()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            var result = _httpApiClient.Get(request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(1, result.Data.Id);
+        }
+
+        [Fact]
+        public void Post_SyncBodyStringUrl_ReturnsResponse()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":2,\"Name\":\"Posted\"}");
+
+            // Act
+            var result = _httpApiClient.Post(request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(2, result.Data.Id);
+        }
+
+        [Fact]
+        public void Put_SyncBodyStringUrl_ReturnsResponse()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":3,\"Name\":\"Updated\"}");
+
+            // Act
+            var result = _httpApiClient.Put(request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(3, result.Data.Id);
+        }
+
+        [Fact]
+        public void Delete_SyncBodyStringUrl_ReturnsResponse()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":4,\"Name\":\"Deleted\"}");
+
+            // Act
+            var result = _httpApiClient.Delete(request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(4, result.Data.Id);
+        }
+
+        [Fact]
+        public void Patch_SyncBodyStringUrl_ReturnsResponse()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":5,\"Name\":\"Patched\"}");
+
+            // Act
+            var result = _httpApiClient.Patch(request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(5, result.Data.Id);
+        }
+
+        [Fact]
+        public void Send_SyncBodyStringUrl_ReturnsResponse()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":6,\"Name\":\"Sent\"}");
+
+            // Act
+            var result = _httpApiClient.Send("PUT", request, "/api/custom");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, result.Status);
+            Assert.Equal(6, result.Data.Id);
+        }
+
+        [Fact]
         public async Task SendAsync_WithHttpRequestInfo_ReturnsResponse()
         {
             // Arrange
