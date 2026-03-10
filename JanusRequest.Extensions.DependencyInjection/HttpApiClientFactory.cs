@@ -1,3 +1,6 @@
+using System;
+using System.Net.Http;
+
 namespace JanusRequest.Extensions.DependencyInjection
 {
     /// <summary>

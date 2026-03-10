@@ -8,7 +8,6 @@
 		<PackageIcon>icon.png</PackageIcon>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageId>JanusRequest</PackageId>
-		<PackageVersion>2.0.0</PackageVersion>
 		<Title>JanusRequest - HTTP API Client Library</Title>
 		<Authors>Gustavo Viana</Authors>
 		<PackageProjectUrl>https://github.com/gustavorviana/JanusRequest</PackageProjectUrl>
