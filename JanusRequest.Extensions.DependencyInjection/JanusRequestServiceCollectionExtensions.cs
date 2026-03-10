@@ -25,8 +25,8 @@ namespace JanusRequest.Extensions.DependencyInjection
         /// <returns>The IHttpClientBuilder for further configuration.</returns>
         public static IHttpClientBuilder AddJanusRequestClient(
             this IServiceCollection services,
-            Action<IServiceProvider, HttpClient>? configureClient = null,
-            Action<HttpApiClientSettings>? configureSettings = null)
+            Action<IServiceProvider, HttpClient> configureClient = null,
+            Action<HttpApiClientSettings> configureSettings = null)
         {
             if (services == null)
                 throw new ArgumentNullException(nameof(services));
@@ -82,7 +82,7 @@ namespace JanusRequest.Extensions.DependencyInjection
         public static IHttpClientBuilder AddJanusRequestClient(
             this IServiceCollection services,
             string name,
-            Action<IServiceProvider, HttpClient>? configureClient = null)
+            Action<IServiceProvider, HttpClient> configureClient = null)
         {
             if (services == null)
                 throw new ArgumentNullException(nameof(services));

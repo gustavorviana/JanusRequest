@@ -40,7 +40,7 @@ namespace JanusRequest.Extensions.DependencyInjection
                 response.RequestMessage?.RequestUri?.ToString());
         }
 
-        public void LogError(Exception exception, HttpRequestMessage request, HttpResponseMessage? response)
+        public void LogError(Exception exception, HttpRequestMessage request, HttpResponseMessage response)
         {
             if (exception == null) return;
 
@@ -69,7 +69,7 @@ namespace JanusRequest.Extensions.DependencyInjection
                 headers);
         }
 
-        private static string BuildHeadersToLog(Exception exception, HttpResponseMessage? response)
+        private static string BuildHeadersToLog(Exception exception, HttpResponseMessage response)
         {
             if (exception is RequestException reqEx)
             {
