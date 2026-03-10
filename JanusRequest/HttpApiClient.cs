@@ -375,7 +375,7 @@ namespace JanusRequest
                 if (response.StatusCode == HttpStatusCode.NoContent)
                     return new RestApiResponse<TResponse>(response, default);
 
-                var deserializer = GetDeserializer<TResponse>(body.GetType(), response);
+                var deserializer = GetDeserializer<TResponse>(body.GetType(), typeof(TResponse));
                 if (deserializer != null)
                     return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings));
 
@@ -402,7 +402,7 @@ namespace JanusRequest
                 if (!response.IsSuccessStatusCode)
                     return new RestApiResponse<TResponse>(response, default);
 
-                var deserializer = GetDeserializer<TResponse>(typeof(TResponse), response);
+                var deserializer = GetDeserializer<TResponse>(typeof(TResponse), typeof(TResponse));
                 if (deserializer != null)
                     return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings));
 
@@ -455,6 +455,7 @@ namespace JanusRequest
         /// </summary>
         /// <param name="responseType">The type to get the deserializer for.</param>
         /// <returns>The deserializer type if found, null otherwise.</returns>
+        [Obsolete("Use HttpApiClientSettings.GetDeserializerType or GetDeserializerTypeFromResponse instead.")]
         public static Type GetDeserializerType(Type responseType)
         {
             var interfaceType = responseType.GetInterfaces()
@@ -464,9 +465,10 @@ namespace JanusRequest
             return interfaceType?.GetGenericArguments()[1];
         }
 
-        private IResponseDeserializer<TResponse> GetDeserializer<TResponse>(Type type, HttpResponseMessage response)
+        private IResponseDeserializer<TResponse> GetDeserializer<TResponse>(Type requestType, Type responseType)
         {
-            var converterType = GetDeserializerType(type);
+            var converterType = Settings.GetDeserializerType(requestType)
+                             ?? Settings.GetDeserializerType(responseType);
             return converterType == null ? null : Activator.CreateInstance(converterType) as IResponseDeserializer<TResponse>;
         }
 

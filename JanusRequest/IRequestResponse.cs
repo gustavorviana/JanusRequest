@@ -1,14 +1,18 @@
-﻿namespace JanusRequest
+﻿using System;
+
+namespace JanusRequest
 {
     /// <summary>
     /// Interface for request objects that expect a specific response type and use a custom deserializer.
-    /// This interface extends IRequestResponse&lt;TResponse&gt; to specify both the expected response type
+    /// This interface extends <see cref="IRequestResponse{TResponse}"/> to specify both the expected response type
     /// and the deserializer that should be used to process the HTTP response.
     /// </summary>
     /// <typeparam name="TResponse">The type of the expected response object.</typeparam>
     /// <typeparam name="TDeserializer">The type of the custom deserializer that implements IResponseDeserializer&lt;TResponse&gt;.</typeparam>
+    [Obsolete("Specifying the deserializer on the request is deprecated. Apply JanusRequest.Attributes.ResponseDeserializerAttribute to the response type instead.")]
     public interface IRequestResponse<TResponse, TDeserializer>
-        : IRequestResponse<TResponse> where TResponse : class
+        : IRequestResponse<TResponse>
+        where TResponse : class
         where TDeserializer : IResponseDeserializer<TResponse>
     {
     }

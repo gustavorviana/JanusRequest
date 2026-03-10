@@ -6,7 +6,6 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Mime;
 using System.Reflection;
 
 namespace JanusRequest
@@ -20,6 +19,7 @@ namespace JanusRequest
     {
         private readonly MediaTypeMap<ContentTypeTranslator> _contentTypeTranslator = new MediaTypeMap<ContentTypeTranslator>();
         private readonly ConcurrentDictionary<Type, HttpClientTree> _httpClientTree = new ConcurrentDictionary<Type, HttpClientTree>();
+        private readonly ConcurrentDictionary<Type, Type> _deserializerTypeCache = new ConcurrentDictionary<Type, Type>();
         private static readonly BufferContentBuilder _bufferReader = new BufferContentBuilder();
         private IFormatProvider _formatProvider = CultureInfo.InvariantCulture;
         private static HttpApiClientSettings _default = new HttpApiClientSettings();
@@ -280,6 +280,74 @@ namespace JanusRequest
         internal static string GetMediaType(Type type)
         {
             return type.GetCustomAttribute<ContentTypeAttribute>()?.MediaType;
+        }
+
+        /// <summary>
+        /// Registers a deserializer for the specified response type.
+        /// </summary>
+        /// <typeparam name="TResponse">The response type that the deserializer can handle.</typeparam>
+        /// <typeparam name="TDeserializer">
+        /// The deserializer type responsible for converting the HTTP response into <typeparamref name="TResponse"/>.
+        /// </typeparam>
+        /// <remarks>
+        /// This method is a generic convenience wrapper over <see cref="AddDeserializer(Type, Type)"/>.
+        /// If a deserializer is already registered for the specified response type, it will be replaced.
+        /// </remarks>
+        public void AddDeserializer<TResponse, TDeserializer>()
+            where TDeserializer : class, IResponseDeserializer<TResponse>, new()
+        {
+            AddDeserializer(typeof(TResponse), typeof(TDeserializer));
+        }
+
+        /// <summary>
+        /// Registers or replaces the deserializer associated with the specified response type.
+        /// </summary>
+        /// <param name="targetClass">The response type that the deserializer should handle.</param>
+        /// <param name="deserializer">The type responsible for deserializing the HTTP response.</param>
+        /// <remarks>
+        /// If a deserializer is already registered for the specified response type, it will be overwritten.
+        /// </remarks>
+        public void AddDeserializer(Type targetClass, Type deserializer)
+        {
+            _deserializerTypeCache.AddOrUpdate(targetClass, deserializer, (tClass, tDeserializer) => tDeserializer);
+        }
+
+        /// <summary>
+        /// Resolves the deserializer type associated with the provided type.
+        /// The method first checks whether the type is decorated with
+        /// <see cref="ResponseDeserializerAttribute"/> and returns the configured
+        /// deserializer if present. If the attribute is not found, it falls back
+        /// to inspecting whether the type implements
+        /// <see cref="IRequestResponse{TResponse, TDeserializer}"/>.
+        /// </summary>
+        /// <param name="type">The type to inspect.</param>
+        /// <returns>
+        /// The deserializer <see cref="Type"/> if one can be resolved; otherwise, <see langword="null"/>.
+        /// </returns>
+        public Type GetDeserializerType(Type type)
+        {
+            return _deserializerTypeCache.GetOrAdd(type, classType =>
+            {
+                var attribute = classType.GetCustomAttribute<ResponseDeserializerAttribute>();
+                if (attribute != null)
+                    return attribute.DeserializerType;
+
+                var interfaceType = type.GetInterfaces()
+                    .FirstOrDefault(i => i.IsGenericType &&
+                                        i.GetGenericTypeDefinition() == typeof(IRequestResponse<,>));
+
+                return interfaceType?.GetGenericArguments()[1];
+            });
+        }
+
+        /// <summary>
+        /// Clears the deserializer type cache. Useful for hot-reload or testing scenarios.
+        /// </summary>
+        /// <returns>The current HttpApiClientSettings instance for method chaining.</returns>
+        public HttpApiClientSettings ClearDeserializerTypeCache()
+        {
+            _deserializerTypeCache.Clear();
+            return this;
         }
 
         /// <summary>
