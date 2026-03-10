@@ -1,7 +1,8 @@
-using System;
-using System.Net.Http;
-using JanusRequest;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using System;
+using System.Linq;
+using System.Net.Http;
 
 namespace JanusRequest.Extensions.DependencyInjection
 {
@@ -15,9 +16,6 @@ namespace JanusRequest.Extensions.DependencyInjection
         /// This overload uses a shared HttpApiClientSettings instance that can be customized.
         /// </summary>
         /// <param name="services">The service collection.</param>
-        /// <param name="configureClient">
-        /// Optional callback to configure the underlying HttpClient (BaseAddress, default headers, etc.).
-        /// </param>
         /// <param name="configureSettings">
         /// Optional callback to customize HttpApiClientSettings for this application.
         /// If not provided, HttpApiClientSettings.Default is used.
@@ -25,7 +23,6 @@ namespace JanusRequest.Extensions.DependencyInjection
         /// <returns>The IHttpClientBuilder for further configuration.</returns>
         public static IHttpClientBuilder AddJanusRequestClient(
             this IServiceCollection services,
-            Action<IServiceProvider, HttpClient> configureClient = null,
             Action<HttpApiClientSettings> configureSettings = null)
         {
             if (services == null)
@@ -41,18 +38,10 @@ namespace JanusRequest.Extensions.DependencyInjection
                 return settings;
             });
 
-            // Logger adapter for IHttpApiClientLogger -> ILogger<HttpApiClient>
-            services.AddSingleton<IHttpApiClientLogger, LoggingHttpApiClientLogger>();
-
-            // Register our factory abstraction so callers can request IHttpApiClientFactory
-            services.AddTransient<IHttpApiClientFactory, HttpApiClientFactory>();
+            TryRegisterCore(services);
 
             // Register a named HttpClient that both the factory and typed client will use
-            var builder = services
-                .AddHttpClient(HttpApiClientFactory.DefaultClientName, (provider, httpClient) =>
-                {
-                    configureClient?.Invoke(provider, httpClient);
-                });
+            var builder = services.AddHttpClient(HttpApiClientFactory.DefaultClientName);
 
             // Also register HttpApiClient as a typed client for those who prefer direct injection
             builder.AddTypedClient((httpClient, provider) =>
@@ -82,7 +71,7 @@ namespace JanusRequest.Extensions.DependencyInjection
         public static IHttpClientBuilder AddJanusRequestClient(
             this IServiceCollection services,
             string name,
-            Action<IServiceProvider, HttpClient> configureClient = null)
+            Action<IServiceProvider, HttpApiClient> configureClient = null)
         {
             if (services == null)
                 throw new ArgumentNullException(nameof(services));
@@ -90,16 +79,37 @@ namespace JanusRequest.Extensions.DependencyInjection
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("Client name must be provided.", nameof(name));
 
-            return services
-                .AddHttpClient(name, (service, httpClient) => configureClient?.Invoke(service, httpClient))
-                .AddTypedClient((httpClient, provider) =>
+            TryRegisterCore(services);
+
+            var registry = services.FirstOrDefault(x => x.ImplementationType == typeof(HttpApiClientConfiguratorRegistry))?.ImplementationInstance as HttpApiClientConfiguratorRegistry;
+            if (registry == null)
+            {
+                registry = new HttpApiClientConfiguratorRegistry();
+                services.AddSingleton(registry);
+            }
+
+            registry.Register(name, configureClient);
+
+            return services.AddHttpClient(name);
+        }
+
+        private static void TryRegisterCore(IServiceCollection services)
+        {
+            // Logger adapter for IHttpApiClientLogger -> ILogger<HttpApiClient>
+            services.TryAddSingleton<IHttpApiClientLogger, LoggingHttpApiClientLogger>();
+
+            // Register our factory abstraction so callers can request IHttpApiClientFactory
+            services.TryAddSingleton<IHttpApiClientFactory>(x =>
+            {
+                var clientFactory = x.GetRequiredService<IHttpClientFactory>();
+                var settings = x.GetRequiredService<HttpApiClientSettings>();
+                var logger = x.GetRequiredService<IHttpApiClientLogger>();
+
+                return new HttpApiClientFactory(x, clientFactory, settings, logger)
                 {
-                    var settings = provider.GetService<HttpApiClientSettings>() ?? HttpApiClientSettings.Default;
-                    return new HttpApiClient(httpClient)
-                    {
-                        Settings = settings
-                    };
-                });
+                    ConfiguratorRegistry = x.GetService<HttpApiClientConfiguratorRegistry>()
+                };
+            });
         }
     }
 }

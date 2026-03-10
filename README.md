@@ -1,131 +1,182 @@
 # JanusRequest
 
-JanusRequest is a complete HTTP API client library for .NET Framework 4.5+ and modern .NET (net5.0, net7.0, net8.0).  
-It provides a fluent API for building HTTP requests, automatic serialization/deserialization, error handling, and optional
-integration with `IHttpClientFactory` and `Microsoft.Extensions.Logging`.
+[![NuGet](https://img.shields.io/nuget/v/JanusRequest.svg)](https://www.nuget.org/packages/JanusRequest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-net45%20%7C%20net472%20%7C%20netstandard2.0%20%7C%20net5%2B-512bd4)](https://dotnet.microsoft.com)
 
-## Features
+A typed HTTP client library for .NET with attribute-based routing, automatic serialization, fluent authentication, and built-in error recovery. Supports both sync and async APIs across .NET Framework 4.5+ and modern .NET.
 
-- **Fluent API design**: Chain methods for authentication, headers, and query parameters
-- **Multiple content types**: JSON, XML, Form Data, Form URL-Encoded
-- **Automatic Serialization/Deserialization**: Based on attributes and content types
-- **Attribute-based configuration**: Decorate request types with routing and content metadata
-- **Error handling**: built-in `HttpErrorHandler`, `RequestException`, `ThrottlingException`
-- **Throttling support**: Automatic handling of HTTP 429 via `ThrottleRecoveryHandler`
-- **Logging hook**: `IHttpApiClientLogger` interface and DI-based logger adapter
-- **DI integration** (optional): `JanusRequest.Extensions.DependencyInjection` with `IHttpClientFactory`
-- **JSON serializers**:
-  - `System.Text.Json` by default on netstandard2.0+/net472+/net5.0+
-  - `Newtonsoft.Json` only for legacy targets and via an optional package on .NET 5+
-- **Media type resolution with structured suffixes**: E.g. `application/error+json` falls back to JSON
-- **Non-standard body methods**: Opt-in support for GET/DELETE with body
-- **Sync & async APIs**: Synchronous helpers built on top of async methods
+---
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Request Objects & Attributes](#request-objects--attributes)
+- [HTTP Verbs](#http-verbs)
+  - [GET without body](#get-without-body)
+  - [Verb overloads with string URL](#verb-overloads-with-string-url)
+  - [Form-data upload](#form-data-upload)
+- [Authentication](#authentication)
+- [Error Handling](#error-handling)
+- [Non-Standard Body Methods](#non-standard-body-methods)
+- [Custom Deserializers](#custom-deserializers)
+- [Deserializer Cache](#deserializer-cache)
+- [Logging](#logging)
+- [JSON Serialization](#json-serialization)
+- [Dependency Injection](#dependency-injection)
 
 ---
 
 ## Installation
 
-### Core library
+| Package | Target | Purpose |
+|---|---|---|
+| `JanusRequest` | `net45; net472; netstandard2.0; net5.0; net7.0; net8.0` | Core library |
+| `JanusRequest.Extensions.DependencyInjection` | `netstandard2.0; net5.0; net6.0; net8.0` | `IServiceCollection` + `IHttpClientFactory` integration |
+| `JanusRequest.Json.Newtonsoft` | `net5.0; net6.0; net8.0` | `Newtonsoft.Json` support on modern .NET |
 
 ```powershell
 Install-Package JanusRequest
-```
 
-Targets: `net45; net472; netstandard2.0; net5.0+`.
-
-### Optional: Dependency Injection integration
-
-```powershell
+# Optional
 Install-Package JanusRequest.Extensions.DependencyInjection
-```
-
-Targets: `net6.0+`.  
-Provides extensions for `IServiceCollection` and integration with `IHttpClientFactory`.
-
-### Optional: Newtonsoft.Json integration (.NET 5+)
-
-```powershell
 Install-Package JanusRequest.Json.Newtonsoft
 ```
-
-Targets: `net5.0`.  
-Allows you to switch JSON serialization from `System.Text.Json` back to `Newtonsoft.Json` on modern .NET.
 
 ---
 
 ## Quick Start
 
-### Basic usage with `HttpApiClient`
-
-```csharp
-using JanusRequest;
-
-// Create client
-var client = new HttpApiClient("https://api.example.com");
-
-// Simple GET request using HttpRequestInfo
-var response = await client.SendAsync<UserResponse>(new HttpRequestInfo
-{
-    Method = "GET",
-    Path = "/users/123"
-});
-
-Console.WriteLine($"User: {response.Data.Name}");
-```
-
-### Using Request Objects with Attributes
-
 ```csharp
 using JanusRequest;
 using JanusRequest.Attributes;
 
+// 1. Define a typed request
 [Request("/users/{id}")]
 [ContentType(HttpContentType.Json)]
 public class GetUserRequest : IRequestResponse<UserResponse>
 {
     [PathOnly]
     public int Id { get; set; }
-
-    [QueryArg("include")]
-    public string Include { get; set; }
 }
 
-// Usage
-var request = new GetUserRequest
+public class UserResponse
 {
-    Id = 123,
-    Include = "profile"
-};
+    public int Id { get; set; }
+    public string Name { get; set; }
+}
 
-var response = await client.GetAsync(request);
+// 2. Send it
+using var client = new HttpApiClient("https://api.example.com");
+
+var response = await client.GetAsync(new GetUserRequest { Id = 42 });
+Console.WriteLine(response.Data.Name);
 ```
 
-### POST request with JSON body
+For bodyless GETs, a typed URL overload is also available:
+
+```csharp
+var response = await client.GetAsync<UserResponse>("/users/42");
+```
+
+---
+
+## Request Objects & Attributes
+
+Request classes implement `IRequestResponse<TResponse>` and are decorated with attributes that control routing, HTTP method, and content type. Properties are annotated to control how they map to the URL path, query string, or request body.
 
 ```csharp
 using JanusRequest;
 using JanusRequest.Attributes;
 
-[Request("/users", Method = "POST")]
+[Request("/orders/{orderId}/items")]
 [ContentType(HttpContentType.Json)]
-public class CreateUserRequest : IRequestResponse<UserResponse>
+public class GetOrderItemsRequest : IRequestResponse<OrderItemsResponse>
+{
+    [PathOnly]          // Substituted into the URL path; excluded from body and query string
+    public int OrderId { get; set; }
+
+    [QueryArg("page")]  // Appended to the query string as ?page=N
+    public int Page { get; set; }
+
+    [QueryArg("limit")]
+    public int Limit { get; set; }
+}
+```
+
+| Attribute | Target | Effect |
+|---|---|---|
+| `[Request(path)]` | Class | Defines default URL path and optional HTTP method |
+| `[ContentType(...)]` | Class | Sets the `Content-Type` for the request body |
+| `[PathOnly]` | Property | Used for path substitution; excluded from body and query string |
+| `[QueryArg("name")]` | Property | Forces the property into the query string with the given name |
+| `[QueryIgnore]` | Property | Excludes the property from the query string entirely |
+| `[FormData("name")]` | Property | Maps the property as a named field in multipart form-data |
+
+---
+
+## HTTP Verbs
+
+### GET without body
+
+Use `GetAsync<TResponse>` when there is no request body. The overload accepting `HttpRequestInfo` always forces the method to `GET` internally, regardless of what `Method` is set to on the info object.
+
+```csharp
+using JanusRequest;
+
+using var client = new HttpApiClient("https://api.example.com");
+
+// Via string URL
+var r1 = await client.GetAsync<UserResponse>("/users/42");
+
+// Via HttpRequestInfo — useful when extra headers or query params are needed
+var info = new HttpRequestInfo
+{
+    Path  = "/users/42",
+    Query = new UrlQueryBuilder().Set("include", "profile")
+};
+var r2 = await client.GetAsync<UserResponse>(info);
+
+// Synchronous equivalents (HttpClientExtension)
+var s1 = client.Get<UserResponse>("/users/42");
+var s2 = client.Get<UserResponse>(info);
+```
+
+### Verb overloads with string URL
+
+All verbs that accept a request body also expose a `string url` overload, eliminating the need to construct an `HttpRequestInfo` solely to override the path.
+
+```csharp
+using JanusRequest;
+using JanusRequest.Attributes;
+
+[Request("/default-path")]
+[ContentType(HttpContentType.Json)]
+public class ItemRequest : IRequestResponse<ItemResponse>
 {
     public string Name { get; set; }
-    public string Email { get; set; }
-
-    [QueryIgnore] // Will not be included in query string
-    public string Password { get; set; }
 }
 
-// Usage
-var request = new CreateUserRequest
-{
-    Name = "John Doe",
-    Email = "john@example.com",
-    Password = "secret123"
-};
+public class ItemResponse { public int Id { get; set; } }
 
-var response = await client.PostAsync(request);
+using var client = new HttpApiClient("https://api.example.com");
+var body = new ItemRequest { Name = "example" };
+
+// Async
+var r1 = await client.GetAsync(body,             "/api/items");
+var r2 = await client.PostAsync(body,            "/api/items");
+var r3 = await client.PutAsync(body,             "/api/items/1");
+var r4 = await client.DeleteAsync(body,          "/api/items/1");
+var r5 = await client.PatchAsync(body,           "/api/items/1");
+var r6 = await client.SendAsync("OPTIONS", body, "/api/items");
+
+// Synchronous equivalents
+var s1 = client.Post(body,         "/api/items");
+var s2 = client.Put(body,          "/api/items/1");
+var s3 = client.Delete(body,       "/api/items/1");
+var s4 = client.Patch(body,        "/api/items/1");
+var s5 = client.Send("PUT", body,  "/api/items/1");
 ```
 
 ### Form-data upload
@@ -134,7 +185,7 @@ var response = await client.PostAsync(request);
 using JanusRequest;
 using JanusRequest.Attributes;
 
-[Request("/upload")]
+[Request("/files")]
 [ContentType(HttpContentType.FormData)]
 public class UploadRequest : IRequestResponse<UploadResponse>
 {
@@ -145,103 +196,83 @@ public class UploadRequest : IRequestResponse<UploadResponse>
     public string Description { get; set; }
 }
 
-// Usage
-using var fileStream = File.OpenRead("document.pdf");
+public class UploadResponse { public string FileId { get; set; } }
 
-var request = new UploadRequest
+using var client = new HttpApiClient("https://api.example.com");
+using var stream  = File.OpenRead("report.pdf");
+
+var response = await client.PostAsync(new UploadRequest
 {
-    FileStream = fileStream,
-    Description = "Important document"
-};
-
-var response = await client.PostAsync(request);
+    FileStream  = stream,
+    Description = "Q3 Report"
+});
 ```
 
 ---
 
-## Dependency Injection (optional)
+## Authentication
 
-The `JanusRequest.Extensions.DependencyInjection` package provides integration with `IServiceCollection`
-and `IHttpClientFactory`, plus a factory abstraction for `HttpApiClient`.
-
-### Registering a JanusRequest client
+All helpers return `this`, supporting method chaining.
 
 ```csharp
 using JanusRequest;
-using JanusRequest.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection;
 
-var services = new ServiceCollection();
+// Bearer token (OAuth 2.0 / JWT)
+using var client = new HttpApiClient("https://api.example.com")
+    .SetBearerAuthentication("eyJhbGci...");
 
-services.AddJanusRequestClient(
-    configureClient: (provider, httpClient) =>
-    {
-        httpClient.BaseAddress = new Uri("https://api.example.com");
-    },
-    configureSettings: settings =>
-    {
-        settings.SetHandlers(
-            new ThrottleRecoveryHandler(),
-            new HttpErrorHandler());
+// HTTP Basic
+using var client2 = new HttpApiClient("https://api.example.com")
+    .SetBasicAuthentication("username", "password");
 
-        settings.LogResponseHeadersOnError = true;
-    });
+// API key (custom header)
+using var client3 = new HttpApiClient("https://api.example.com")
+    .SetApiKeyAuthentication("my-api-key", "X-API-Key");
+
+// Custom scheme
+using var client4 = new HttpApiClient("https://api.example.com")
+    .SetAuthentication("Digest", "realm-value");
+
+// Remove authentication
+client.ClearAuthentication();
 ```
-
-This registers:
-
-- `HttpApiClient` as a typed client backed by `IHttpClientFactory`
-- `HttpApiClientSettings` as a singleton
-- `IHttpApiClientLogger` implemented by `LoggingHttpApiClientLogger`
-- `IHttpApiClientFactory` to create `HttpApiClient` instances on demand
-
-### Resolving the client
-
-```csharp
-public class MyService
-{
-    private readonly HttpApiClient client;
-
-    public MyService(IHttpApiClientFactory factory)
-    {
-        client = factory.CreateClient();
-    }
-
-    public async Task<UserResponse> GetUserAsync(int id)
-    {
-        var request = new GetUserRequest { Id = id };
-        var response = await client.GetAsync(request);
-        return response.Data;
-    }
-}
-```
-
-You can also use the overload `AddJanusRequestClient(string name, ...)` to register multiple differently
-configured clients using named `HttpClient` instances.
 
 ---
 
-## Logging
+## Error Handling
 
-The core library exposes an `IHttpApiClientLogger` interface:
+`HttpErrorHandler` maps non-success HTTP responses to `RequestException`. `ThrottleRecoveryHandler` automatically waits for the `Retry-After` period and retries on HTTP 429. Both implement `IHttpHandlerBase` and are composed via `SetHandlers`.
 
 ```csharp
-public interface IHttpApiClientLogger
+using JanusRequest;
+using JanusRequest.HttpHandlers;
+
+var settings = new HttpApiClientSettings()
+    .SetHandlers(new ThrottleRecoveryHandler(), new HttpErrorHandler());
+
+using var client = new HttpApiClient("https://api.example.com") { Settings = settings };
+
+try
 {
-    void LogRequest(HttpRequestMessage request);
-    void LogResponse(HttpResponseMessage response);
-    void LogError(Exception exception, HttpRequestMessage request, HttpResponseMessage response);
+    var response = await client.GetAsync<UserResponse>("/users/42");
+    Console.WriteLine(response.Data.Name);
+}
+catch (RequestException ex)
+{
+    // Carries StatusCode, response body, request URL, and response headers
+    Console.WriteLine($"[{(int)ex.StatusCode}] {ex.Url}");
+    Console.WriteLine(ex.Response);
+
+    foreach (var header in ex.Headers ?? [])
+        Console.WriteLine($"  {header.Key}: {string.Join(", ", header.Value)}");
+}
+catch (ThrottlingException ex)
+{
+    Console.WriteLine($"Rate limited — retry after {ex.RetryAfter}s (at {ex.RetryAt:u})");
 }
 ```
 
-When using the DI package, `LoggingHttpApiClientLogger` adapts this interface to `ILogger<HttpApiClient>`,
-logging:
-
-- outgoing requests
-- incoming responses
-- errors (including optional response headers)
-
-Control whether response headers are included in error logs using:
+To include response headers in error logs:
 
 ```csharp
 var settings = new HttpApiClientSettings
@@ -252,228 +283,270 @@ var settings = new HttpApiClientSettings
 
 ---
 
-## JSON serialization
+## Non-Standard Body Methods
 
-### Default behavior
-
-- On `net45`, JSON is handled by `Newtonsoft.Json`.
-- On `netstandard2.0`, `net472` and `net5.0+`, JSON is handled by `System.Text.Json` in `JsonContentTranslator`.
-
-The JSON translator automatically:
-
-- serializes request bodies to `"application/json"`
-- deserializes responses to your `TResponse` type
-- ignores properties marked with REST attributes that should not be in the body
-
-### Switching to Newtonsoft.Json on .NET 5+
-
-Install the optional package:
-
-```powershell
-Install-Package JanusRequest.Json.Newtonsoft
-```
-
-Then configure your settings:
+By default, `GET` and `DELETE` requests do not include a body. Use `NonStandardBodyMethods` on `HttpRequestInfo` to opt in per-request.
 
 ```csharp
 using JanusRequest;
+using JanusRequest.Attributes;
 
-var settings = new HttpApiClientSettings()
-    .UseNewtonsoftJson();
-
-var client = new HttpApiClient("https://api.example.com")
+[ContentType(HttpContentType.Json)]
+public class SearchRequest : IRequestResponse<SearchResponse>
 {
-    Settings = settings
-};
-```
-
-This replaces the JSON translator to use `Newtonsoft.Json` while keeping other translators (XML, form data)
-unchanged.
-
----
-
-## Authentication helpers
-
-```csharp
-using JanusRequest;
-
-// Bearer token
-var client = new HttpApiClient("https://api.example.com")
-    .SetBearerAuthentication("your-jwt-token");
-
-// Basic authentication
-var client2 = new HttpApiClient("https://api.example.com")
-    .SetBasicAuthentication("username", "password");
-
-// API key in header
-var client3 = new HttpApiClient("https://api.example.com")
-    .SetApiKeyAuthentication("your-api-key", "X-API-Key");
-```
-
----
-
-## Error handling
-
-Use `HttpErrorHandler` to map non-success HTTP responses to exceptions:
-
-```csharp
-var settings = new HttpApiClientSettings()
-    .SetHandlers(new ThrottleRecoveryHandler(), new HttpErrorHandler());
-
-var client = new HttpApiClient("https://api.example.com")
-{
-    Settings = settings
-};
-
-try
-{
-    var response = await client.GetAsync(request);
-}
-catch (RequestException ex)
-{
-    Console.WriteLine($"HTTP Error: {ex.StatusCode}");
-    Console.WriteLine($"Response: {ex.Response}");
-    Console.WriteLine($"Url: {ex.Url}");
-
-    if (ex.Headers != null)
-    {
-        foreach (var header in ex.Headers)
-            Console.WriteLine($"{header.Key}: {string.Join(\", \", header.Value)}");
-    }
-}
-catch (ThrottlingException ex)
-{
-    Console.WriteLine($"Rate limited. Retry after: {ex.RetryAfter} seconds");
-    Console.WriteLine($"Retry at: {ex.RetryAt}");
-}
-```
-
-`RequestException` now exposes:
-
-- `StatusCode`
-- `Response`
-- `Headers`
-- `Url`
-
----
-
-## Custom response deserializers
-
-For advanced scenarios, you can plug a custom deserializer implementing `IResponseDeserializer<TResponse>`:
-
-```csharp
-using JanusRequest;
-
-public class CustomDeserializer : IResponseDeserializer<CustomResponse>
-{
-    public async Task<CustomResponse> DeserializeAsync(
-        HttpResponseMessage response,
-        HttpApiClientSettings settings)
-    {
-        var content = await response.Content.ReadAsStringAsync();
-        // Custom deserialization logic
-        return System.Text.Json.JsonSerializer.Deserialize<CustomResponse>(content)!;
-    }
+    public string Query { get; set; }
+    public string[] Filters { get; set; }
 }
 
-[Request("/custom")]
-public class CustomRequest : IRequestResponse<CustomResponse, CustomDeserializer>
-{
-    public string Data { get; set; }
-}
-```
+public class SearchResponse { public int TotalCount { get; set; } }
 
----
+using var client = new HttpApiClient("https://api.example.com");
 
-## Configuration settings
-
-`HttpApiClientSettings` controls content serialization, deserialization and handlers:
-
-```csharp
-using JanusRequest;
-
-var settings = new HttpApiClientSettings()
-    .SetHandlers(new ThrottleRecoveryHandler(), new HttpErrorHandler());
-
-settings.DefaultMediaType = HttpContentType.Json;        // default content type
-settings.DateTimeFormat = "yyyy-MM-dd HH:mm:ss";         // DateTime formatting
-settings.TimeFormat = "HH:mm:ss";                        // TimeSpan formatting
-settings.ValidateRequest = true;                         // DataAnnotations validation
-settings.LogResponseHeadersOnError = true;               // include headers in error logs
-
-var client = new HttpApiClient("https://api.example.com")
-{
-    Settings = settings
-};
-```
-
-### Global content translator registration
-
-You can register custom translators globally by media type:
-
-```csharp
-using JanusRequest;
-using JanusRequest.ContentTranslator;
-
-HttpApiClientSettings.RegisterGlobalContentTranslator(
-    "application/error+json",
-    () => new MyCustomJsonTranslator());
-```
-
-This allows you to support vendor-specific or custom media types across your application.
-
-### Structured suffix media types
-
-JanusRequest resolves media types using structured suffixes. For example:
-
-- If the response media type is `application/error+json` and you only registered `application/json`,
-  the JSON translator will still be used.
-- If you register a specific translator for `application/error+json`, it will be preferred over the
-  plain `application/json` translator.
-
----
-
-## Advanced request configuration
-
-### Allowing body on GET / DELETE
-
-Some APIs accept a body with GET or DELETE requests. This is not standard, but you can opt in:
-
-```csharp
 var info = new HttpRequestInfo
 {
-    Method = "GET",
     Path = "/search",
     AllowNonStandardBody = NonStandardBodyMethods.Get
 };
 
-var response = await client.SendAsync<SearchResponse>(info);
+var response = await client.GetAsync(new SearchRequest { Query = "laptop" }, info);
 ```
 
-### Absolute URLs
+`NonStandardBodyMethods` is a `[Flags]` enum:
 
-If `HttpRequestInfo.Path` starts with `http://` or `https://`, it is treated as an absolute URL and the
-client base address is ignored:
+| Value | Effect |
+|---|---|
+| `None` | Default — no body on GET or DELETE |
+| `Get` | Allows body on GET |
+| `Delete` | Allows body on DELETE |
+| `All` | Allows body on both GET and DELETE |
+
+---
+
+## Custom Deserializers
+
+For responses that require special deserialization logic, implement `IResponseDeserializer<TResponse>` and attach it to a request type or response type.
+
+### Via `IRequestResponse<TResponse, TDeserializer>`
 
 ```csharp
-var response = await client.SendAsync<UserResponse>(new HttpRequestInfo
+using JanusRequest;
+using System.Net.Http;
+using System.Text.Json;
+
+public class UserResponse { public int Id { get; set; } public string Name { get; set; } }
+
+public class UserDeserializer : IResponseDeserializer<UserResponse>
 {
-    Method = "GET",
-    Path = "https://other-api.example.com/users/123"
-});
+    public async Task<UserResponse> DeserializeAsync(
+        HttpResponseMessage response, HttpApiClientSettings settings)
+    {
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<UserResponse>(json);
+    }
+}
+
+[Request("/users/{id}")]
+public class GetUserRequest : IRequestResponse<UserResponse, UserDeserializer>
+{
+    [PathOnly]
+    public int Id { get; set; }
+}
+```
+
+### Via `[ResponseDeserializer]`
+
+```csharp
+using JanusRequest.Attributes;
+
+[ResponseDeserializer(typeof(UserDeserializer))]
+public class UserResponse { public int Id { get; set; } }
+```
+
+### Via `HttpApiClientSettings.AddDeserializer`
+
+```csharp
+var settings = new HttpApiClientSettings();
+settings.AddDeserializer<UserResponse, UserDeserializer>();
+
+using var client = new HttpApiClient("https://api.example.com") { Settings = settings };
 ```
 
 ---
 
-## Breaking changes from 1.0.2 to 2.0.0
+## Deserializer Cache
 
-The 2.0.0 release introduces some important behavioral and API changes compared to 1.0.2.
+`HttpApiClientSettings` caches the reflection results used to resolve deserializer types. The cache is per-settings-instance — different settings objects maintain independent caches, consistent with the library's existing isolation model. There is no action required to benefit from it.
 
-| Change | Impact | Migration |
-|-------|--------|----------|
-| `Path()` → `Patch()` | The synchronous `Path` extension method in `HttpClientExtension` was a typo for PATCH. | Replace `client.Path(request)` with `client.Patch(request)`. |
-| `DefaultContentType` obsolete | `HttpApiClientSettings` now exposes `DefaultMediaType` as the preferred property. `DefaultContentType` is kept only for backward compatibility and marked `[Obsolete]`. | Use `settings.DefaultMediaType = HttpContentType.Json;`. |
-| `HttpContentType` enum → static class | `HttpContentType` is now a static class with string constants (e.g. `"application/json"`). Existing code using `HttpContentType.Json` continues to work because it is still a public constant. | No change required in most cases. Treat values as `string` when needed. |
-| `ContentTypeAttribute` uses string media type | `ContentTypeAttribute` now takes a raw media type string. Attributes like `[ContentType(HttpContentType.Json)]` keep working because `HttpContentType.Json` is a string constant. | For custom types, use `[ContentType("application/error+json")]`. |
-| Default JSON serializer | On netstandard2.0+/net472+/net5.0+, the default JSON serializer switched from `Newtonsoft.Json` to `System.Text.Json`. Serialization behavior (naming, null handling, exceptions) may change. | To keep Newtonsoft behavior on .NET 5+, install `JanusRequest.Json.Newtonsoft` and call `settings.UseNewtonsoftJson()`. |
-| `RequestException.Headers` | `RequestException` gained a `Headers` property with all response headers. Existing code still compiles, but you can now read headers when handling errors. | Optionally use `ex.Headers` when inspecting errors. |
+```csharp
+var settings = new HttpApiClientSettings();
+
+// Cache is populated automatically on first call to GetDeserializerType.
+// Manual reset is available for hot-reload or test isolation scenarios.
+// Returns 'this' for fluent chaining.
+settings.ClearDeserializerTypeCache();
+```
+
+---
+
+## Logging
+
+Implement `IHttpApiClientLogger` to hook into the request/response/error lifecycle without a hard dependency on any specific logging framework.
+
+```csharp
+using JanusRequest;
+using System;
+using System.Net.Http;
+
+public class ConsoleLogger : IHttpApiClientLogger
+{
+    public void LogRequest(HttpRequestMessage request)
+        => Console.WriteLine($"→ {request.Method} {request.RequestUri}");
+
+    public void LogResponse(HttpResponseMessage response)
+        => Console.WriteLine($"← {(int)response.StatusCode} {response.ReasonPhrase}");
+
+    public void LogError(Exception ex, HttpRequestMessage request, HttpResponseMessage response)
+        => Console.Error.WriteLine($"✗ {ex.Message}");
+}
+
+using var client = new HttpApiClient("https://api.example.com")
+{
+    Logger = new ConsoleLogger()
+};
+```
+
+When using the DI package, `LoggingHttpApiClientLogger` automatically adapts `IHttpApiClientLogger` to `ILogger<HttpApiClient>`.
+
+---
+
+## JSON Serialization
+
+### Default behavior
+
+| Target framework | Serializer |
+|---|---|
+| `net45` | `Newtonsoft.Json` |
+| `net472`, `netstandard2.0`, `net5.0`, `net6.0`, `net8.0` | `System.Text.Json` |
+
+### Switch to Newtonsoft.Json on .NET 5+
+
+```csharp
+using JanusRequest;
+
+var settings = new HttpApiClientSettings().UseNewtonsoftJson();
+
+using var client = new HttpApiClient("https://api.example.com") { Settings = settings };
+```
+
+### Register a global content translator
+
+Overrides apply to all `HttpApiClientSettings` instances created after registration. Pass `null` as the factory to remove an override.
+
+```csharp
+HttpApiClientSettings.RegisterGlobalContentTranslator(
+    HttpContentType.Json,
+    () => new MyCustomJsonTranslator());
+```
+
+---
+
+## Dependency Injection
+
+> Requires `JanusRequest.Extensions.DependencyInjection` (`netstandard2.0; net5.0; net6.0; net8.0`)
+
+### Default client
+
+`AddJanusRequestClient` registers the core services and returns an `IHttpClientBuilder` for configuring the underlying `HttpClient`:
+
+```csharp
+using JanusRequest;
+using JanusRequest.Extensions.DependencyInjection;
+using JanusRequest.HttpHandlers;
+using Microsoft.Extensions.DependencyInjection;
+
+services
+    .AddJanusRequestClient(settings =>
+    {
+        settings.SetHandlers(new ThrottleRecoveryHandler(), new HttpErrorHandler());
+        settings.LogResponseHeadersOnError = true;
+    })
+    .ConfigureHttpClient((provider, httpClient) =>
+    {
+        httpClient.BaseAddress = new Uri("https://api.example.com");
+    });
+```
+
+The extension registers:
+- `HttpApiClientSettings` as a singleton
+- `IHttpApiClientLogger` implemented by `LoggingHttpApiClientLogger`
+- `IHttpApiClientFactory` for on-demand client creation
+- `HttpApiClient` as a typed client backed by `IHttpClientFactory`
+
+```csharp
+public class UserService
+{
+    private readonly HttpApiClient _client;
+
+    public UserService(IHttpApiClientFactory factory)
+        => _client = factory.CreateClient();
+
+    public async Task<UserResponse> GetAsync(int id, CancellationToken ct = default)
+    {
+        var response = await _client.GetAsync(new GetUserRequest { Id = id }, ct);
+        return response.Data;
+    }
+}
+```
+
+### Named clients
+
+Use `AddJanusRequestClient(name, configureClient)` when you need multiple clients with different configurations. The `configureClient` action receives the resolved `IServiceProvider` and the `HttpApiClient` instance after it is created — use it to apply per-client configuration such as authentication:
+
+```csharp
+services
+    .AddJanusRequestClient(settings =>
+    {
+        settings.SetHandlers(new ThrottleRecoveryHandler(), new HttpErrorHandler());
+    })
+    .ConfigureHttpClient((provider, httpClient) =>
+        httpClient.BaseAddress = new Uri("https://api.example.com"));
+
+services
+    .AddJanusRequestClient("payments", (provider, client) =>
+    {
+        var token = provider.GetRequiredService<ITokenService>().GetToken();
+        client.SetBearerAuthentication(token);
+    })
+    .ConfigureHttpClient((provider, httpClient) =>
+        httpClient.BaseAddress = new Uri("https://payments.example.com"));
+
+services
+    .AddJanusRequestClient("notifications", (provider, client) =>
+    {
+        client.SetApiKeyAuthentication("my-api-key", "X-API-Key");
+    })
+    .ConfigureHttpClient((provider, httpClient) =>
+        httpClient.BaseAddress = new Uri("https://notifications.example.com"));
+```
+
+`factory.CreateClient(name)` passes the name directly to the underlying `IHttpClientFactory`, so `"payments"` in `AddJanusRequestClient` maps 1-to-1 to `"payments"` in `CreateClient`. The `configureClient` action registered for that name is then applied to the resulting `HttpApiClient`:
+
+```csharp
+public class PaymentService
+{
+    private readonly HttpApiClient _client;
+
+    public PaymentService(IHttpApiClientFactory factory)
+        => _client = factory.CreateClient("payments");
+}
+
+public class NotificationService
+{
+    private readonly HttpApiClient _client;
+
+    public NotificationService(IHttpApiClientFactory factory)
+        => _client = factory.CreateClient("notifications");
+}
+```
+
+Calling `factory.CreateClient()` without arguments, or with a `null`/empty string, resolves the default client.
