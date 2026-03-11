@@ -55,6 +55,9 @@ namespace JanusRequest.Extensions.DependencyInjection
                 };
             });
 
+            // Register IHttpApiClient so consumers can depend on the interface for testability
+            services.TryAddTransient<IHttpApiClient>(provider => provider.GetRequiredService<HttpApiClient>());
+
             return builder;
         }
 

@@ -21,7 +21,7 @@ namespace JanusRequest
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="url">The URL to send the GET request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Get<TResponse>(this HttpApiClient client, string url) where TResponse : class
+        public static RestApiResponse<TResponse> Get<TResponse>(this IHttpApiClient client, string url) where TResponse : class
         {
             return client.GetAsync<TResponse>(url).GetAwaiter().GetResult();
         }
@@ -34,7 +34,7 @@ namespace JanusRequest
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="info">The request information including path, headers, and query parameters.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Get<TResponse>(this HttpApiClient client, HttpRequestInfo info) where TResponse : class
+        public static RestApiResponse<TResponse> Get<TResponse>(this IHttpApiClient client, HttpRequestInfo info) where TResponse : class
         {
             return client.GetAsync<TResponse>(info).GetAwaiter().GetResult();
         }
@@ -48,7 +48,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Get<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
+        public static RestApiResponse<TResponse> Get<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.GetAsync(body, info).GetAwaiter().GetResult();
         }
@@ -62,7 +62,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Get<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
+        public static RestApiResponse<TResponse> Get<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
         {
             return client.GetAsync(body, url).GetAwaiter().GetResult();
         }
@@ -76,7 +76,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Post<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
+        public static RestApiResponse<TResponse> Post<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.PostAsync(body, info).GetAwaiter().GetResult();
         }
@@ -90,7 +90,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Post<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
+        public static RestApiResponse<TResponse> Post<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
         {
             return client.PostAsync(body, url).GetAwaiter().GetResult();
         }
@@ -104,7 +104,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Put<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
+        public static RestApiResponse<TResponse> Put<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.PutAsync(body, info).GetAwaiter().GetResult();
         }
@@ -118,7 +118,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Put<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
+        public static RestApiResponse<TResponse> Put<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
         {
             return client.PutAsync(body, url).GetAwaiter().GetResult();
         }
@@ -132,7 +132,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Delete<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
+        public static RestApiResponse<TResponse> Delete<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.DeleteAsync(body, info).GetAwaiter().GetResult();
         }
@@ -146,7 +146,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Delete<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
+        public static RestApiResponse<TResponse> Delete<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
         {
             return client.DeleteAsync(body, url).GetAwaiter().GetResult();
         }
@@ -161,7 +161,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         [Obsolete("Use Patch instead. This method was incorrectly named and will be removed in version 1.0.4.")]
-        public static RestApiResponse<TResponse> Path<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
+        public static RestApiResponse<TResponse> Path<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.PatchAsync(body, info).GetAwaiter().GetResult();
         }
@@ -175,7 +175,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Patch<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
+        public static RestApiResponse<TResponse> Patch<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.PatchAsync(body, info).GetAwaiter().GetResult();
         }
@@ -189,7 +189,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Patch<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
+        public static RestApiResponse<TResponse> Patch<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
         {
             return client.PatchAsync(body, url).GetAwaiter().GetResult();
         }
@@ -204,7 +204,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Send<TResponse>(this HttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
+        public static RestApiResponse<TResponse> Send<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.SendAsync(body, info).GetAwaiter().GetResult();
         }
@@ -217,7 +217,7 @@ namespace JanusRequest
         /// <param name="body">The request body object. Can be null.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the raw response data.</returns>
-        public static RestApiResponse SendRequest(this HttpApiClient client, object body, HttpRequestInfo info = null)
+        public static RestApiResponse SendRequest(this IHttpApiClient client, object body, HttpRequestInfo info = null)
         {
             return client.SendRequestAsync(body, info).GetAwaiter().GetResult();
         }
@@ -230,7 +230,7 @@ namespace JanusRequest
         /// <param name="body">The request body object. Can be null.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>The raw HttpResponseMessage from the request.</returns>
-        public static HttpResponseMessage SendWebRequest(this HttpApiClient client, object body, HttpRequestInfo info = null)
+        public static HttpResponseMessage SendWebRequest(this IHttpApiClient client, object body, HttpRequestInfo info = null)
         {
             return client.SendHttpRequestAsync(body, info).GetAwaiter().GetResult();
         }
@@ -244,7 +244,7 @@ namespace JanusRequest
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="info">The request information including method, path, headers, and query parameters.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Send<TResponse>(this HttpApiClient client, HttpRequestInfo info) where TResponse : class
+        public static RestApiResponse<TResponse> Send<TResponse>(this IHttpApiClient client, HttpRequestInfo info) where TResponse : class
         {
             return client.SendAsync<TResponse>(info).GetAwaiter().GetResult();
         }
@@ -259,7 +259,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Send<TResponse>(this HttpApiClient client, string httpMethod, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
+        public static RestApiResponse<TResponse> Send<TResponse>(this IHttpApiClient client, string httpMethod, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
         {
             return client.SendAsync(httpMethod, body, info).GetAwaiter().GetResult();
         }
@@ -274,7 +274,7 @@ namespace JanusRequest
         /// <param name="body">The request body object implementing IRequestResponse.</param>
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public static RestApiResponse<TResponse> Send<TResponse>(this HttpApiClient client, string httpMethod, IRequestResponse<TResponse> body, string url) where TResponse : class
+        public static RestApiResponse<TResponse> Send<TResponse>(this IHttpApiClient client, string httpMethod, IRequestResponse<TResponse> body, string url) where TResponse : class
         {
             return client.SendAsync(httpMethod, body, url).GetAwaiter().GetResult();
         }

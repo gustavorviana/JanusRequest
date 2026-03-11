@@ -17,7 +17,7 @@ namespace JanusRequest
     /// error handling, and recovery mechanisms. Provides a fluent interface for configuring authentication,
     /// headers, and request parameters while supporting various content types and response handling strategies.
     /// </summary>
-    public class HttpApiClient : IDisposable
+    public class HttpApiClient : IHttpApiClient
     {
         private bool _disposed;
 
@@ -166,7 +166,7 @@ namespace JanusRequest
         /// <param name="url">The URL path for the request (relative to the client base URL or absolute).</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> GetAsync<TResponse>(string url, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> GetAsync<TResponse>(string url, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await SendAsync<TResponse>(new HttpRequestInfo { Path = url, Method = "GET" }, cancellationToken);
         }
@@ -178,7 +178,7 @@ namespace JanusRequest
         /// <param name="info">The request information containing path, headers, query params, etc.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> GetAsync<TResponse>(HttpRequestInfo info, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> GetAsync<TResponse>(HttpRequestInfo info, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await SendAsync<TResponse>(info.Clone("GET"), cancellationToken);
         }
@@ -191,7 +191,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> GetAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> GetAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await SendAsync("GET", body, info, cancellationToken);
         }
@@ -204,7 +204,7 @@ namespace JanusRequest
         /// <param name="url">The URL path for the request.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> GetAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> GetAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await GetAsync(body, new HttpRequestInfo { Path = url }, cancellationToken);
         }
@@ -217,7 +217,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> PostAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> PostAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await SendAsync("POST", body, info, cancellationToken);
         }
@@ -230,7 +230,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the request to.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> PostAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> PostAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await PostAsync(body, new HttpRequestInfo { Path = url }, cancellationToken);
         }
@@ -243,7 +243,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> PutAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> PutAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await SendAsync("PUT", body, info, cancellationToken);
         }
@@ -256,7 +256,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the request to.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> PutAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> PutAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await PutAsync(body, new HttpRequestInfo { Path = url }, cancellationToken);
         }
@@ -269,7 +269,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> DeleteAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> DeleteAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await SendAsync("DELETE", body, info, cancellationToken);
         }
@@ -282,7 +282,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the request to.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> DeleteAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> DeleteAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await DeleteAsync(body, new HttpRequestInfo { Path = url }, cancellationToken);
         }
@@ -295,7 +295,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> PatchAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> PatchAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await SendAsync("PATCH", body, info, cancellationToken);
         }
@@ -308,7 +308,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the request to.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> PatchAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> PatchAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await PatchAsync(body, new HttpRequestInfo { Path = url }, cancellationToken);
         }
@@ -322,7 +322,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(string httpMethod, IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(string httpMethod, IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
         {
             if (info == null)
                 info = new HttpRequestInfo();
@@ -339,7 +339,7 @@ namespace JanusRequest
         /// <param name="url">The URL path for the request.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(string httpMethod, IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(string httpMethod, IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
         {
             return await SendAsync(httpMethod, body, new HttpRequestInfo { Path = url }, cancellationToken);
         }
@@ -353,7 +353,7 @@ namespace JanusRequest
         /// <param name="method">The HTTP method to use. Defaults to GET.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(IRequestResponse<TResponse> body, string path, string method = "GET", CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(IRequestResponse<TResponse> body, string path, string method = "GET", CancellationToken cancellationToken = default) where TResponse : class
         {
             var info = new HttpRequestInfo { Path = path, Method = method ?? "GET" };
             return await SendAsync(body, info, cancellationToken);
@@ -368,7 +368,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
         {
             using (var response = await SendHttpRequestAsync(body, info, cancellationToken))
             {
@@ -409,7 +409,7 @@ namespace JanusRequest
         /// <param name="info">The request information including method, path, headers, and query parameters.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        public async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(HttpRequestInfo info, CancellationToken cancellationToken = default) where TResponse : class
+        public virtual async Task<RestApiResponse<TResponse>> SendAsync<TResponse>(HttpRequestInfo info, CancellationToken cancellationToken = default) where TResponse : class
         {
             using (var response = await SendHttpRequestAsync(null, info, cancellationToken))
             {
@@ -453,7 +453,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>A RestApiResponse containing the raw response data.</returns>
-        public async Task<RestApiResponse> SendRequestAsync(object body, HttpRequestInfo info = null, CancellationToken cancellationToken = default)
+        public virtual async Task<RestApiResponse> SendRequestAsync(object body, HttpRequestInfo info = null, CancellationToken cancellationToken = default)
         {
             using (var response = await SendHttpRequestAsync(body, info, cancellationToken))
                 return new RestApiResponse(response);
@@ -467,7 +467,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <param name="cancellationToken">Token to cancel the operation.</param>
         /// <returns>The raw HttpResponseMessage from the request.</returns>
-        public async Task<HttpResponseMessage> SendHttpRequestAsync(object body, HttpRequestInfo info = null, CancellationToken cancellationToken = default)
+        public virtual async Task<HttpResponseMessage> SendHttpRequestAsync(object body, HttpRequestInfo info = null, CancellationToken cancellationToken = default)
         {
             ValidateBody(body);
             var requestMessage = CreateHttpRequestMessage(ConfigureRequest(info, body), body);
@@ -623,12 +623,12 @@ namespace JanusRequest
             return true;
         }
 
-        private static HttpRequestInfo ConfigureRequest(HttpRequestInfo info, object request)
+        private HttpRequestInfo ConfigureRequest(HttpRequestInfo info, object request)
         {
             if (info == null)
                 info = new HttpRequestInfo();
 
-            return new HttpRequestInfoBuilder(info)
+            return new HttpRequestInfoBuilder(info, _settings)
                 .ApplyRequestObject(request)
                 .Build();
         }

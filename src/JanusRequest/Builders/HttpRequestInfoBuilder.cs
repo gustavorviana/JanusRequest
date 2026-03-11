@@ -20,6 +20,7 @@ namespace JanusRequest.Builders
         private readonly UrlQueryBuilder _query = new UrlQueryBuilder();
         private readonly NameValueCollection _headers = new NameValueCollection();
         private readonly Dictionary<string, Cookie> _cookies = new Dictionary<string, Cookie>();
+        private readonly HttpApiClientSettings _settings;
         private object _request = null;
         private string _pathTemplate;
 
@@ -31,16 +32,20 @@ namespace JanusRequest.Builders
         /// <summary>
         /// Initializes a new instance of the HttpRequestInfoBuilder class.
         /// </summary>
-        public HttpRequestInfoBuilder()
+        /// <param name="settings">The HTTP API client settings to use. If null, default settings will be used.</param>
+        public HttpRequestInfoBuilder(HttpApiClientSettings settings = null)
         {
+            _settings = settings ?? HttpApiClientSettings.Default;
         }
 
         /// <summary>
         /// Initializes a new instance of the HttpRequestInfoBuilder class with existing HTTP request information.
         /// </summary>
         /// <param name="info">The existing HTTP request information to initialize from.</param>
-        public HttpRequestInfoBuilder(HttpRequestInfo info)
+        /// <param name="settings">The HTTP API client settings to use. If null, default settings will be used.</param>
+        public HttpRequestInfoBuilder(HttpRequestInfo info, HttpApiClientSettings settings = null)
         {
+            _settings = settings ?? HttpApiClientSettings.Default;
             _pathTemplate = info.Path;
             Method = info.Method;
             AddQuery(info.Query);
@@ -196,7 +201,7 @@ namespace JanusRequest.Builders
             {
                 var value = property.GetValue(request);
                 if (value != null)
-                    _headers[headerAttr.Name] = value.ToString();
+                    _headers[headerAttr.Name] = _settings.ContentToString(value);
             }
 
             return true;
@@ -229,11 +234,13 @@ namespace JanusRequest.Builders
                 var value = property.GetValue(request);
                 if (value != null)
                 {
-                    var cookie = new Cookie(cookieAttr.Name, value.ToString());
+                    var cookie = new Cookie(cookieAttr.Name, _settings.ContentToString(value));
                     if (!string.IsNullOrEmpty(cookieAttr.Path))
                         cookie.Path = cookieAttr.Path;
+
                     if (!string.IsNullOrEmpty(cookieAttr.Domain))
                         cookie.Domain = cookieAttr.Domain;
+
                     _cookies[cookieAttr.Name] = cookie;
                 }
             }
@@ -343,12 +350,12 @@ namespace JanusRequest.Builders
 
         private string BuildPath()
         {
-            return new UrlBuilder(_pathTemplate).Build(_request);
+            return new UrlBuilder(_pathTemplate, _settings).Build(_request);
         }
 
         private UrlQueryBuilder BuildQuery(string method)
         {
-            return new UrlQueryBuilder()
+            return new UrlQueryBuilder(_settings)
                 .Merge(_query)
                 .Add(_request, !method.Equals("GET", StringComparison.OrdinalIgnoreCase));
         }
