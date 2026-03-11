@@ -19,7 +19,9 @@ namespace JanusRequest.ContentTranslator
         protected internal static Type[] DisalowedTypes { get; } = new[]
         {
             typeof(QueryArgAttribute),
-            typeof(PathOnlyAttribute)
+            typeof(PathOnlyAttribute),
+            typeof(HeaderAttribute),
+            typeof(HeaderCollectionAttribute)
         };
 
         /// <summary>

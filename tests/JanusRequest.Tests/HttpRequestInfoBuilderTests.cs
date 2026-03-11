@@ -332,6 +332,208 @@ namespace JanusRequest.Tests
             Assert.Empty(result.Query.ToString());
         }
 
+        #region Header Attribute Tests
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderAttribute_AddsHeaderToResult()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithHeader { Token = "my-token" };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("my-token", result.Headers["X-Custom-Header"]);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderAttribute_IntValue_UsesToString()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithIntHeader { RequestId = 42 };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("42", result.Headers["X-Request-Id"]);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderAttribute_NullValue_DoesNotAddHeader()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithHeader { Token = null };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Null(result.Headers["X-Custom-Header"]);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithMultipleHeaderAttributes_AddsAllHeaders()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithMultipleHeaders
+            {
+                Authorization = "Bearer token123",
+                ApiKey = "key-abc"
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("Bearer token123", result.Headers["Authorization"]);
+            Assert.Equal("key-abc", result.Headers["X-Api-Key"]);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderAndQueryArg_BothWorkIndependently()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithHeaderAndQueryArg
+            {
+                Token = "my-token",
+                Search = "test-query",
+                Body = "body-value"
+            };
+
+            // Act
+            var result = builder.SetMethod("GET").ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("my-token", result.Headers["X-Token"]);
+            Assert.Contains("search=test-query", result.Query.ToString());
+        }
+
+        #endregion
+
+        #region HeaderCollection Attribute Tests
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderCollectionAttribute_Dictionary_AddsAllEntries()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithHeaderCollection
+            {
+                CustomHeaders = new Dictionary<string, string>
+                {
+                    ["X-First"] = "value1",
+                    ["X-Second"] = "value2"
+                }
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("value1", result.Headers["X-First"]);
+            Assert.Equal("value2", result.Headers["X-Second"]);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderCollectionAttribute_NullValue_DoesNotThrow()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithHeaderCollection { CustomHeaders = null };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.NotNull(result);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderCollectionAttribute_EmptyDictionary_DoesNotAddHeaders()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithHeaderCollection
+            {
+                CustomHeaders = new Dictionary<string, string>()
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(0, result.Headers.Count);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderCollectionAttribute_ReadOnlyDictionary_Works()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var dict = new Dictionary<string, string>
+            {
+                ["X-Read-Only"] = "ro-value"
+            };
+            var request = new TestRequestWithReadOnlyDictionaryHeaders
+            {
+                Headers = dict
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("ro-value", result.Headers["X-Read-Only"]);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderCollectionAttribute_Convertible_UsesInterface()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithConvertibleHeaders
+            {
+                Headers = new CustomHeaderSource("X-From-Convertible", "converted-value")
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("converted-value", result.Headers["X-From-Convertible"]);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderCollectionAttribute_EmptyKeyInDictionary_SkipsEntry()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithHeaderCollectionObjectDict
+            {
+                CustomHeaders = new Dictionary<string, object>
+                {
+                    ["X-Valid"] = "value",
+                    [""] = "should-be-skipped"
+                }
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("value", result.Headers["X-Valid"]);
+            Assert.Equal(1, result.Headers.Count);
+        }
+
+        #endregion
+
         // Helper classes for testing
         [Request("/api/test", Method = "POST")]
         private class TestRequestWithAttribute
@@ -342,6 +544,79 @@ namespace JanusRequest.Tests
         private class TestRequestWithoutAttribute
         {
             public int Id { get; set; } = 1;
+        }
+
+        private class TestRequestWithHeader
+        {
+            [Header("X-Custom-Header")]
+            public string Token { get; set; }
+        }
+
+        private class TestRequestWithIntHeader
+        {
+            [Header("X-Request-Id")]
+            public int RequestId { get; set; }
+        }
+
+        private class TestRequestWithMultipleHeaders
+        {
+            [Header("Authorization")]
+            public string Authorization { get; set; }
+
+            [Header("X-Api-Key")]
+            public string ApiKey { get; set; }
+        }
+
+        private class TestRequestWithHeaderAndQueryArg
+        {
+            [Header("X-Token")]
+            public string Token { get; set; }
+
+            [QueryArg("search")]
+            public string Search { get; set; }
+
+            public string Body { get; set; }
+        }
+
+        private class TestRequestWithHeaderCollection
+        {
+            [HeaderCollection]
+            public Dictionary<string, string> CustomHeaders { get; set; }
+        }
+
+        private class TestRequestWithHeaderCollectionObjectDict
+        {
+            [HeaderCollection]
+            public Dictionary<string, object> CustomHeaders { get; set; }
+        }
+
+        private class TestRequestWithReadOnlyDictionaryHeaders
+        {
+            [HeaderCollection]
+            public IReadOnlyDictionary<string, string> Headers { get; set; }
+        }
+
+        private class TestRequestWithConvertibleHeaders
+        {
+            [HeaderCollection]
+            public CustomHeaderSource Headers { get; set; }
+        }
+
+        private class CustomHeaderSource : IHeaderCollectionConvertible
+        {
+            private readonly string _key;
+            private readonly string _value;
+
+            public CustomHeaderSource(string key, string value)
+            {
+                _key = key;
+                _value = value;
+            }
+
+            public IEnumerable<KeyValuePair<string, string>> ToHeaderCollection()
+            {
+                yield return new KeyValuePair<string, string>(_key, _value);
+            }
         }
     }
 }

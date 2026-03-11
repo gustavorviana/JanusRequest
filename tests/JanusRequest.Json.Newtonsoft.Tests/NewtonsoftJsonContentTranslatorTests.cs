@@ -145,6 +145,39 @@ namespace JanusRequest.Json.Newtonsoft.Tests
         }
 
         [Fact]
+        public void Serialize_ExcludesHeaderProperties()
+        {
+            var request = new TestRequestWithAttributes
+            {
+                Id = 1,
+                Name = "Test",
+                HeaderParam = "should-be-excluded"
+            };
+
+            var json = _translator.Serialize(request);
+
+            Assert.DoesNotContain("HeaderParam", json);
+            Assert.DoesNotContain("should-be-excluded", json);
+            Assert.Contains("\"Id\":1", json);
+        }
+
+        [Fact]
+        public void Serialize_ExcludesHeaderCollectionProperties()
+        {
+            var request = new TestRequestWithAttributes
+            {
+                Id = 1,
+                Name = "Test",
+                HeaderCollectionParam = new Dictionary<string, string> { ["X-Test"] = "value" }
+            };
+
+            var json = _translator.Serialize(request);
+
+            Assert.DoesNotContain("HeaderCollectionParam", json);
+            Assert.Contains("\"Id\":1", json);
+        }
+
+        [Fact]
         public void Parse_WithNull_ReturnsNull()
         {
             var content = _translator.Parse(null!);
@@ -168,6 +201,12 @@ namespace JanusRequest.Json.Newtonsoft.Tests
 
             [PathOnly]
             public int ResourceId { get; set; }
+
+            [Header("X-Custom")]
+            public string? HeaderParam { get; set; }
+
+            [HeaderCollection]
+            public Dictionary<string, string>? HeaderCollectionParam { get; set; }
         }
     }
 }

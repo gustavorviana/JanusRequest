@@ -1,3 +1,4 @@
+using JanusRequest.Attributes;
 using NSubstitute;
 using System.Net;
 
@@ -794,6 +795,93 @@ namespace JanusRequest.Tests
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, result.Status);
+        }
+        [Fact]
+        public async Task SendAsync_WithHeaderAttributeOnRequest_HeaderAppearsOnHttpRequestMessageAsync()
+        {
+            // Arrange
+            var request = new TestRequestWithHeaders
+            {
+                Token = "my-secret-token",
+                Name = "Test"
+            };
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            await _httpApiClient.PostAsync(request);
+
+            // Assert
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Headers.Contains("X-Auth-Token") &&
+                    req.Headers.GetValues("X-Auth-Token").First() == "my-secret-token"),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task SendAsync_WithHeaderCollectionAttributeOnRequest_HeadersAppearOnHttpRequestMessageAsync()
+        {
+            // Arrange
+            var request = new TestRequestWithHeaderCollectionE2E
+            {
+                CustomHeaders = new Dictionary<string, string>
+                {
+                    ["X-First"] = "value1",
+                    ["X-Second"] = "value2"
+                }
+            };
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            await _httpApiClient.PostAsync(request);
+
+            // Assert
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Headers.Contains("X-First") &&
+                    req.Headers.GetValues("X-First").First() == "value1" &&
+                    req.Headers.Contains("X-Second") &&
+                    req.Headers.GetValues("X-Second").First() == "value2"),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task SendAsync_WithHeaderAttribute_ExcludesFromJsonBodyAsync()
+        {
+            // Arrange
+            var request = new TestRequestWithHeaders
+            {
+                Token = "my-secret-token",
+                Name = "TestBody"
+            };
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            await _httpApiClient.PostAsync(request);
+
+            // Assert
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Content != null &&
+                    !req.Content.ReadAsStringAsync().Result.Contains("my-secret-token") &&
+                    req.Content.ReadAsStringAsync().Result.Contains("TestBody")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Request("http://localhost/test", Method = "POST")]
+        private class TestRequestWithHeaders : IRequestResponse<TestResponse>
+        {
+            [Header("X-Auth-Token")]
+            public string Token { get; set; }
+
+            public string Name { get; set; }
+        }
+
+        [Request("http://localhost/test", Method = "POST")]
+        private class TestRequestWithHeaderCollectionE2E : IRequestResponse<TestResponse>
+        {
+            [HeaderCollection]
+            public Dictionary<string, string> CustomHeaders { get; set; }
         }
     }
 }

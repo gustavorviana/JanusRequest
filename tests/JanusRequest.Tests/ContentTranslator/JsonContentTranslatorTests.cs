@@ -234,6 +234,46 @@ namespace JanusRequest.Tests.ContentTranslator
             Assert.Contains("[\"John\",\"Jane\",\"Bob\"]", json);
         }
 
+        [Fact]
+        public void Serialize_WhenObjectHasHeaderAttribute_IgnoresProperty()
+        {
+            // Arrange
+            var content = new TestClassWithAttributes
+            {
+                Name = "John",
+                HeaderParam = "ShouldBeIgnored",
+                RegularProperty = "ShouldBeIncluded"
+            };
+
+            // Act
+            var result = _translator.Serialize(content);
+
+            // Assert
+            Assert.Contains("\"Name\":\"John\"", result);
+            Assert.Contains("\"RegularProperty\":\"ShouldBeIncluded\"", result);
+            Assert.DoesNotContain("HeaderParam", result);
+        }
+
+        [Fact]
+        public void Serialize_WhenObjectHasHeaderCollectionAttribute_IgnoresProperty()
+        {
+            // Arrange
+            var content = new TestClassWithAttributes
+            {
+                Name = "John",
+                HeaderCollectionParam = new Dictionary<string, string> { ["X-Test"] = "value" },
+                RegularProperty = "ShouldBeIncluded"
+            };
+
+            // Act
+            var result = _translator.Serialize(content);
+
+            // Assert
+            Assert.Contains("\"Name\":\"John\"", result);
+            Assert.Contains("\"RegularProperty\":\"ShouldBeIncluded\"", result);
+            Assert.DoesNotContain("HeaderCollectionParam", result);
+        }
+
         // Helper method to extract string content (simplified for testing)
         private string GetStringContentValue(StringContent content)
         {
@@ -255,6 +295,12 @@ namespace JanusRequest.Tests.ContentTranslator
 
             [Attributes.PathOnly]
             public string PathParam { get; set; }
+
+            [Attributes.Header("X-Custom")]
+            public string HeaderParam { get; set; }
+
+            [Attributes.HeaderCollection]
+            public Dictionary<string, string> HeaderCollectionParam { get; set; }
 
             public string RegularProperty { get; set; }
         }

@@ -1,5 +1,6 @@
 ﻿using JanusRequest.Attributes;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Net;
@@ -16,7 +17,7 @@ namespace JanusRequest.Builders
     public class HttpRequestInfoBuilder
     {
         private readonly UrlQueryBuilder _query = new UrlQueryBuilder();
-        private readonly WebHeaderCollection _headers = new WebHeaderCollection();
+        private readonly NameValueCollection _headers = new NameValueCollection();
         private readonly Dictionary<string, Cookie> _cookies = new Dictionary<string, Cookie>();
         private object _request = null;
         private string _pathTemplate;
@@ -61,6 +62,7 @@ namespace JanusRequest.Builders
             if (ReflectionUtils.IsNative(type, false))
                 return this;
 
+            ApplyHeaderAttributes(request, type);
             return ApplyRequestAttribute(type.GetCustomAttribute<RequestAttribute>());
         }
 
@@ -154,6 +156,72 @@ namespace JanusRequest.Builders
                 Query = BuildQuery(method),
                 Method = method,
             };
+        }
+
+        private void ApplyHeaderAttributes(object request, Type type)
+        {
+            foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                var headerAttr = property.GetCustomAttribute<HeaderAttribute>();
+                if (headerAttr != null)
+                {
+                    var value = property.GetValue(request);
+                    if (value != null)
+                        _headers[headerAttr.Name] = value.ToString();
+                    continue;
+                }
+
+                var collectionAttr = property.GetCustomAttribute<HeaderCollectionAttribute>();
+                if (collectionAttr != null)
+                {
+                    var value = property.GetValue(request);
+                    if (value != null)
+                        ApplyHeaderCollection(value);
+                }
+            }
+        }
+
+        private void ApplyHeaderCollection(object value)
+        {
+            if (value is IHeaderCollectionConvertible convertible)
+            {
+                foreach (var kvp in convertible.ToHeaderCollection())
+                {
+                    if (!string.IsNullOrEmpty(kvp.Key))
+                        _headers[kvp.Key] = kvp.Value ?? string.Empty;
+                }
+                return;
+            }
+
+            if (value is IDictionary dict)
+            {
+                foreach (DictionaryEntry entry in dict)
+                {
+                    var key = entry.Key?.ToString();
+                    if (!string.IsNullOrEmpty(key))
+                        _headers[key] = entry.Value?.ToString() ?? string.Empty;
+                }
+                return;
+            }
+
+            if (value is IEnumerable<KeyValuePair<string, string>> stringPairs)
+            {
+                foreach (var kvp in stringPairs)
+                {
+                    if (!string.IsNullOrEmpty(kvp.Key))
+                        _headers[kvp.Key] = kvp.Value ?? string.Empty;
+                }
+                return;
+            }
+
+            if (value is IEnumerable<KeyValuePair<string, object>> objectPairs)
+            {
+                foreach (var kvp in objectPairs)
+                {
+                    if (!string.IsNullOrEmpty(kvp.Key))
+                        _headers[kvp.Key] = kvp.Value?.ToString() ?? string.Empty;
+                }
+            }
         }
 
         private HttpRequestInfoBuilder ApplyRequestAttribute(RequestAttribute attribute)
