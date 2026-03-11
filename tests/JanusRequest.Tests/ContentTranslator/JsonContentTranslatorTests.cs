@@ -235,6 +235,46 @@ namespace JanusRequest.Tests.ContentTranslator
         }
 
         [Fact]
+        public void Serialize_WhenObjectHasCookieAttribute_IgnoresProperty()
+        {
+            // Arrange
+            var content = new TestClassWithAttributes
+            {
+                Name = "John",
+                CookieParam = "ShouldBeIgnored",
+                RegularProperty = "ShouldBeIncluded"
+            };
+
+            // Act
+            var result = _translator.Serialize(content);
+
+            // Assert
+            Assert.Contains("\"Name\":\"John\"", result);
+            Assert.Contains("\"RegularProperty\":\"ShouldBeIncluded\"", result);
+            Assert.DoesNotContain("CookieParam", result);
+        }
+
+        [Fact]
+        public void Serialize_WhenObjectHasCookieCollectionAttribute_IgnoresProperty()
+        {
+            // Arrange
+            var content = new TestClassWithAttributes
+            {
+                Name = "John",
+                CookieCollectionParam = new Dictionary<string, string> { ["session"] = "value" },
+                RegularProperty = "ShouldBeIncluded"
+            };
+
+            // Act
+            var result = _translator.Serialize(content);
+
+            // Assert
+            Assert.Contains("\"Name\":\"John\"", result);
+            Assert.Contains("\"RegularProperty\":\"ShouldBeIncluded\"", result);
+            Assert.DoesNotContain("CookieCollectionParam", result);
+        }
+
+        [Fact]
         public void Serialize_WhenObjectHasHeaderAttribute_IgnoresProperty()
         {
             // Arrange
@@ -301,6 +341,12 @@ namespace JanusRequest.Tests.ContentTranslator
 
             [Attributes.HeaderCollection]
             public Dictionary<string, string> HeaderCollectionParam { get; set; }
+
+            [Attributes.Cookie("session")]
+            public string CookieParam { get; set; }
+
+            [Attributes.CookieCollection]
+            public Dictionary<string, string> CookieCollectionParam { get; set; }
 
             public string RegularProperty { get; set; }
         }

@@ -21,7 +21,9 @@ namespace JanusRequest.ContentTranslator
             typeof(QueryArgAttribute),
             typeof(PathOnlyAttribute),
             typeof(HeaderAttribute),
-            typeof(HeaderCollectionAttribute)
+            typeof(HeaderCollectionAttribute),
+            typeof(CookieAttribute),
+            typeof(CookieCollectionAttribute)
         };
 
         /// <summary>

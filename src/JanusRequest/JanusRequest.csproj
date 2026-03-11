@@ -30,6 +30,21 @@
 			- Added global content translator registration API for custom media types
 			- Improved non-success response handling to avoid deserializing empty/invalid bodies
 			when no HttpErrorHandler is registered
+
+			Attribute-driven headers and cookies:
+			- Added [Header] and [HeaderCollection] attributes for declaring HTTP headers on request properties
+			- Added IHeaderCollectionConvertible interface for custom header conversion logic
+			- Added [Cookie] and [CookieCollection] attributes for declaring HTTP cookies on request properties
+			- [Cookie] supports optional Path and Domain properties for cookie scoping
+			- Added ICookieCollectionConvertible interface returning IEnumerable&lt;Cookie&gt; for full cookie control
+			- [Header] and [Cookie] support AllowMultiple — multiple attributes on the same property
+			- Conflict validation: combining [Header]+[HeaderCollection] or [Cookie]+[CookieCollection]
+			on the same property throws InvalidOperationException
+
+			Error handling:
+			- Added DeserializationException (extends RequestException) thrown when response
+			deserialization fails, exposing Content, TargetType, and InnerException
+
 			- Fixed minor bugs and significantly expanded unit test coverage
 		</PackageReleaseNotes>
 		<PackageTags>http;api;client;rest;json;xml;authentication;serialization;retry;throttling;fluent;async;error-handling;recovery;attributes</PackageTags>

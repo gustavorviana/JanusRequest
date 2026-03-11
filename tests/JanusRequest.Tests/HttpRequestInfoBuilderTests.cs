@@ -534,6 +534,344 @@ namespace JanusRequest.Tests
 
         #endregion
 
+        #region Cookie Attribute Tests
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieAttribute_AddsCookieToResult()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithCookie { SessionId = "abc123" };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(1, result.Cookies.Count);
+            Assert.Equal("abc123", result.Cookies["session"]!.Value);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieAttribute_NullValue_DoesNotAddCookie()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithCookie { SessionId = null };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(0, result.Cookies.Count);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieAttribute_IntValue_UsesToString()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithIntCookie { MaxAge = 3600 };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("3600", result.Cookies["max-age"]!.Value);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithMultipleCookieAttributes_AddsAllCookies()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithMultipleCookies
+            {
+                SessionId = "sess123",
+                Preferences = "dark-mode"
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(2, result.Cookies.Count);
+            Assert.Equal("sess123", result.Cookies["session"]!.Value);
+            Assert.Equal("dark-mode", result.Cookies["preferences"]!.Value);
+        }
+
+        #endregion
+
+        #region CookieCollection Attribute Tests
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieCollectionAttribute_Dictionary_AddsAllEntries()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithCookieCollection
+            {
+                Cookies = new Dictionary<string, string>
+                {
+                    ["session"] = "abc123",
+                    ["theme"] = "dark"
+                }
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(2, result.Cookies.Count);
+            Assert.Equal("abc123", result.Cookies["session"]!.Value);
+            Assert.Equal("dark", result.Cookies["theme"]!.Value);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieCollectionAttribute_NullValue_DoesNotThrow()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithCookieCollection { Cookies = null };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(0, result.Cookies.Count);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieCollectionAttribute_ReadOnlyDictionary_Works()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var dict = new Dictionary<string, string> { ["token"] = "xyz" };
+            var request = new TestRequestWithReadOnlyDictionaryCookies
+            {
+                Cookies = dict
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(1, result.Cookies.Count);
+            Assert.Equal("xyz", result.Cookies["token"]!.Value);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieCollectionAttribute_Convertible_UsesInterface()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithConvertibleCookies
+            {
+                Cookies = new CustomCookieSource("session", "converted-value")
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(1, result.Cookies.Count);
+            Assert.Equal("converted-value", result.Cookies["session"]!.Value);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieCollectionAttribute_EmptyKeyInDictionary_SkipsEntry()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithCookieCollectionObjectDict
+            {
+                Cookies = new Dictionary<string, object>
+                {
+                    ["valid"] = "value",
+                    [""] = "should-be-skipped"
+                }
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(1, result.Cookies.Count);
+            Assert.Equal("value", result.Cookies["valid"]!.Value);
+        }
+
+        #endregion
+
+        #region AllowMultiple Tests
+
+        [Fact]
+        public void ApplyRequestObject_WithMultipleHeaderAttributesOnSameProperty_AddsAllHeaders()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithMultipleHeadersOnSameProperty { Value = "shared-value" };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("shared-value", result.Headers["X-First"]);
+            Assert.Equal("shared-value", result.Headers["X-Second"]);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithMultipleHeaderAttributesOnSameProperty_NullValue_DoesNotAddHeaders()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithMultipleHeadersOnSameProperty { Value = null };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(0, result.Headers.Count);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithMultipleCookieAttributesOnSameProperty_AddsAllCookies()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithMultipleCookiesOnSameProperty { Value = "shared-value" };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(2, result.Cookies.Count);
+            Assert.Equal("shared-value", result.Cookies["cookie-a"]!.Value);
+            Assert.Equal("shared-value", result.Cookies["cookie-b"]!.Value);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithMultipleCookieAttributesOnSameProperty_NullValue_DoesNotAddCookies()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithMultipleCookiesOnSameProperty { Value = null };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(0, result.Cookies.Count);
+        }
+
+        #endregion
+
+        #region Cookie Path and Domain Tests
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieAttributeAndPath_SetsCookiePath()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithCookiePath { SessionId = "abc123" };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("abc123", result.Cookies["session"]!.Value);
+            Assert.Equal("/api", result.Cookies["session"]!.Path);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieAttributeAndDomain_SetsCookieDomain()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithCookieDomain { SessionId = "abc123" };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("abc123", result.Cookies["session"]!.Value);
+            Assert.Equal(".example.com", result.Cookies["session"]!.Domain);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieAttributeAndPathAndDomain_SetsBoth()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithCookiePathAndDomain { SessionId = "abc123" };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            var cookie = result.Cookies["session"]!;
+            Assert.Equal("abc123", cookie.Value);
+            Assert.Equal("/api", cookie.Path);
+            Assert.Equal(".example.com", cookie.Domain);
+        }
+
+        #endregion
+
+        #region Conflict Validation Tests
+
+        [Fact]
+        public void ApplyRequestObject_WithHeaderAndHeaderCollectionOnSameProperty_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithConflictingHeaderAttributes
+            {
+                Headers = new Dictionary<string, string> { ["X-Test"] = "value" }
+            };
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() => builder.ApplyRequestObject(request));
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieAndCookieCollectionOnSameProperty_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithConflictingCookieAttributes
+            {
+                Cookies = new Dictionary<string, string> { ["session"] = "value" }
+            };
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() => builder.ApplyRequestObject(request));
+        }
+
+        #endregion
+
+        #region ICookieCollectionConvertible with Cookie objects
+
+        [Fact]
+        public void ApplyRequestObject_WithCookieCollectionConvertible_ReturningCookieObjects_PreservesPathAndDomain()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder();
+            var request = new TestRequestWithConvertibleCookiesWithPathDomain
+            {
+                Cookies = new CustomCookieSourceWithPathDomain()
+            };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal(1, result.Cookies.Count);
+            var cookie = result.Cookies["session"]!;
+            Assert.Equal("abc123", cookie.Value);
+            Assert.Equal("/api", cookie.Path);
+            Assert.Equal(".example.com", cookie.Domain);
+        }
+
+        #endregion
+
         // Helper classes for testing
         [Request("/api/test", Method = "POST")]
         private class TestRequestWithAttribute
@@ -616,6 +954,128 @@ namespace JanusRequest.Tests
             public IEnumerable<KeyValuePair<string, string>> ToHeaderCollection()
             {
                 yield return new KeyValuePair<string, string>(_key, _value);
+            }
+        }
+
+        private class TestRequestWithCookie
+        {
+            [Cookie("session")]
+            public string SessionId { get; set; }
+        }
+
+        private class TestRequestWithIntCookie
+        {
+            [Cookie("max-age")]
+            public int MaxAge { get; set; }
+        }
+
+        private class TestRequestWithMultipleCookies
+        {
+            [Cookie("session")]
+            public string SessionId { get; set; }
+
+            [Cookie("preferences")]
+            public string Preferences { get; set; }
+        }
+
+        private class TestRequestWithCookieCollection
+        {
+            [CookieCollection]
+            public Dictionary<string, string> Cookies { get; set; }
+        }
+
+        private class TestRequestWithCookieCollectionObjectDict
+        {
+            [CookieCollection]
+            public Dictionary<string, object> Cookies { get; set; }
+        }
+
+        private class TestRequestWithReadOnlyDictionaryCookies
+        {
+            [CookieCollection]
+            public IReadOnlyDictionary<string, string> Cookies { get; set; }
+        }
+
+        private class TestRequestWithConvertibleCookies
+        {
+            [CookieCollection]
+            public CustomCookieSource Cookies { get; set; }
+        }
+
+        private class CustomCookieSource : ICookieCollectionConvertible
+        {
+            private readonly string _key;
+            private readonly string _value;
+
+            public CustomCookieSource(string key, string value)
+            {
+                _key = key;
+                _value = value;
+            }
+
+            public IEnumerable<Cookie> ToCookieCollection()
+            {
+                yield return new Cookie(_key, _value);
+            }
+        }
+
+        private class TestRequestWithMultipleHeadersOnSameProperty
+        {
+            [Header("X-First")]
+            [Header("X-Second")]
+            public string Value { get; set; }
+        }
+
+        private class TestRequestWithMultipleCookiesOnSameProperty
+        {
+            [Cookie("cookie-a")]
+            [Cookie("cookie-b")]
+            public string Value { get; set; }
+        }
+
+        private class TestRequestWithCookiePath
+        {
+            [Cookie("session", Path = "/api")]
+            public string SessionId { get; set; }
+        }
+
+        private class TestRequestWithCookieDomain
+        {
+            [Cookie("session", Domain = ".example.com")]
+            public string SessionId { get; set; }
+        }
+
+        private class TestRequestWithCookiePathAndDomain
+        {
+            [Cookie("session", Path = "/api", Domain = ".example.com")]
+            public string SessionId { get; set; }
+        }
+
+        private class TestRequestWithConflictingHeaderAttributes
+        {
+            [Header("X-Custom")]
+            [HeaderCollection]
+            public Dictionary<string, string> Headers { get; set; }
+        }
+
+        private class TestRequestWithConflictingCookieAttributes
+        {
+            [Cookie("session")]
+            [CookieCollection]
+            public Dictionary<string, string> Cookies { get; set; }
+        }
+
+        private class TestRequestWithConvertibleCookiesWithPathDomain
+        {
+            [CookieCollection]
+            public CustomCookieSourceWithPathDomain Cookies { get; set; }
+        }
+
+        private class CustomCookieSourceWithPathDomain : ICookieCollectionConvertible
+        {
+            public IEnumerable<Cookie> ToCookieCollection()
+            {
+                yield return new Cookie("session", "abc123", "/api", ".example.com");
             }
         }
     }

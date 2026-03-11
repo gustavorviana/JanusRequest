@@ -75,6 +75,19 @@ namespace JanusRequest
         }
 
         /// <summary>
+        /// Initializes a new instance of the RequestException class with the specified status code, response content, and inner exception.
+        /// </summary>
+        /// <param name="statusCode">The HTTP status code of the failed request.</param>
+        /// <param name="response">The response content from the failed request.</param>
+        /// <param name="innerException">The exception that caused this error.</param>
+        public RequestException(HttpStatusCode statusCode, string response, Exception innerException)
+            : base($"Error code: {statusCode}", innerException)
+        {
+            StatusCode = statusCode;
+            Response = response;
+        }
+
+        /// <summary>
         /// Initializes a new instance of the RequestException class with a custom error message.
         /// </summary>
         /// <param name="message">The custom error message.</param>

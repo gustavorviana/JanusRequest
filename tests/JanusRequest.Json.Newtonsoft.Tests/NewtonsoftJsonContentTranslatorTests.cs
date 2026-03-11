@@ -178,6 +178,39 @@ namespace JanusRequest.Json.Newtonsoft.Tests
         }
 
         [Fact]
+        public void Serialize_ExcludesCookieProperties()
+        {
+            var request = new TestRequestWithAttributes
+            {
+                Id = 1,
+                Name = "Test",
+                CookieParam = "should-be-excluded"
+            };
+
+            var json = _translator.Serialize(request);
+
+            Assert.DoesNotContain("CookieParam", json);
+            Assert.DoesNotContain("should-be-excluded", json);
+            Assert.Contains("\"Id\":1", json);
+        }
+
+        [Fact]
+        public void Serialize_ExcludesCookieCollectionProperties()
+        {
+            var request = new TestRequestWithAttributes
+            {
+                Id = 1,
+                Name = "Test",
+                CookieCollectionParam = new Dictionary<string, string> { ["session"] = "value" }
+            };
+
+            var json = _translator.Serialize(request);
+
+            Assert.DoesNotContain("CookieCollectionParam", json);
+            Assert.Contains("\"Id\":1", json);
+        }
+
+        [Fact]
         public void Parse_WithNull_ReturnsNull()
         {
             var content = _translator.Parse(null!);
@@ -207,6 +240,12 @@ namespace JanusRequest.Json.Newtonsoft.Tests
 
             [HeaderCollection]
             public Dictionary<string, string>? HeaderCollectionParam { get; set; }
+
+            [Cookie("session")]
+            public string? CookieParam { get; set; }
+
+            [CookieCollection]
+            public Dictionary<string, string>? CookieCollectionParam { get; set; }
         }
     }
 }

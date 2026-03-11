@@ -683,7 +683,7 @@ namespace JanusRequest.Tests
             SetupHttpResponse(HttpStatusCode.OK, "test");
 
             // Act & Assert
-            await Assert.ThrowsAsync<System.Text.Json.JsonException>(async () =>
+            await Assert.ThrowsAsync<DeserializationException>(async () =>
                 await _httpApiClient.SendAsync(request));
         }
 
@@ -882,6 +882,141 @@ namespace JanusRequest.Tests
         {
             [HeaderCollection]
             public Dictionary<string, string> CustomHeaders { get; set; }
+        }
+
+        [Fact]
+        public async Task SendAsync_WithCookieAttributeOnRequest_CookieAppearsOnHttpRequestMessageAsync()
+        {
+            // Arrange
+            var request = new TestRequestWithCookieE2E
+            {
+                SessionId = "abc123",
+                Name = "Test"
+            };
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            await _httpApiClient.PostAsync(request);
+
+            // Assert
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Headers.Contains("Cookie") &&
+                    req.Headers.GetValues("Cookie").First().Contains("session=abc123")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task SendAsync_WithCookieCollectionAttributeOnRequest_CookiesAppearOnHttpRequestMessageAsync()
+        {
+            // Arrange
+            var request = new TestRequestWithCookieCollectionE2E
+            {
+                Cookies = new Dictionary<string, string>
+                {
+                    ["session"] = "abc123",
+                    ["theme"] = "dark"
+                }
+            };
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            await _httpApiClient.PostAsync(request);
+
+            // Assert
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Headers.Contains("Cookie") &&
+                    req.Headers.GetValues("Cookie").First().Contains("session=abc123") &&
+                    req.Headers.GetValues("Cookie").First().Contains("theme=dark")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task SendAsync_WithCookieAttribute_ExcludesFromJsonBodyAsync()
+        {
+            // Arrange
+            var request = new TestRequestWithCookieE2E
+            {
+                SessionId = "abc123",
+                Name = "TestBody"
+            };
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act
+            await _httpApiClient.PostAsync(request);
+
+            // Assert
+            await _httpMessageHandler.Received(1).OnSendedAsync(
+                Arg.Is<HttpRequestMessage>(req =>
+                    req.Content != null &&
+                    !req.Content.ReadAsStringAsync().Result.Contains("abc123") &&
+                    req.Content.ReadAsStringAsync().Result.Contains("TestBody")),
+                Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task SendAsync_WithInvalidJsonResponse_ThrowsDeserializationExceptionAsync()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "this is not valid json");
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<DeserializationException>(
+                () => _httpApiClient.GetAsync(request));
+
+            Assert.Equal(HttpStatusCode.OK, ex.StatusCode);
+            Assert.Equal("this is not valid json", ex.Content);
+            Assert.Equal(typeof(TestResponse), ex.TargetType);
+            Assert.NotNull(ex.InnerException);
+        }
+
+        [Fact]
+        public async Task SendAsync_WithInvalidJsonResponse_DeserializationExceptionHasCorrectStatusCodeAsync()
+        {
+            // Arrange
+            var request = new TestRequest();
+            SetupHttpResponse(HttpStatusCode.Created, "<html>not json</html>");
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<DeserializationException>(
+                () => _httpApiClient.PostAsync(request));
+
+            Assert.Equal(HttpStatusCode.Created, ex.StatusCode);
+            Assert.Equal("<html>not json</html>", ex.Content);
+        }
+
+        [Fact]
+        public async Task SendAsync_BodilessWithInvalidJsonResponse_ThrowsDeserializationExceptionAsync()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.OK, "not json");
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<DeserializationException>(
+                () => _httpApiClient.GetAsync<TestResponse>("/api/test"));
+
+            Assert.Equal(HttpStatusCode.OK, ex.StatusCode);
+            Assert.Equal("not json", ex.Content);
+            Assert.Equal(typeof(TestResponse), ex.TargetType);
+            Assert.NotNull(ex.InnerException);
+        }
+
+        [Request("http://localhost/test", Method = "POST")]
+        private class TestRequestWithCookieE2E : IRequestResponse<TestResponse>
+        {
+            [Cookie("session")]
+            public string SessionId { get; set; }
+
+            public string Name { get; set; }
+        }
+
+        [Request("http://localhost/test", Method = "POST")]
+        private class TestRequestWithCookieCollectionE2E : IRequestResponse<TestResponse>
+        {
+            [CookieCollection]
+            public Dictionary<string, string> Cookies { get; set; }
         }
     }
 }

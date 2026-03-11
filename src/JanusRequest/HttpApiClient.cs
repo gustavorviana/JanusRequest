@@ -377,10 +377,27 @@ namespace JanusRequest
 
                 var deserializer = GetDeserializer<TResponse>(body.GetType(), typeof(TResponse));
                 if (deserializer != null)
-                    return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings));
+                {
+                    try
+                    {
+                        return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings));
+                    }
+                    catch (Exception ex) when (!(ex is RequestException))
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        throw new DeserializationException(response.StatusCode, errorContent, typeof(TResponse), ex);
+                    }
+                }
 
                 var content = await response.Content.ReadAsStringAsync();
-                return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content, Settings.DefaultContentType));
+                try
+                {
+                    return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content, Settings.DefaultContentType));
+                }
+                catch (Exception ex) when (!(ex is RequestException))
+                {
+                    throw new DeserializationException(response.StatusCode, content, typeof(TResponse), ex);
+                }
             }
         }
 
@@ -404,10 +421,27 @@ namespace JanusRequest
 
                 var deserializer = GetDeserializer<TResponse>(typeof(TResponse), typeof(TResponse));
                 if (deserializer != null)
-                    return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings));
+                {
+                    try
+                    {
+                        return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings));
+                    }
+                    catch (Exception ex) when (!(ex is RequestException))
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        throw new DeserializationException(response.StatusCode, errorContent, typeof(TResponse), ex);
+                    }
+                }
 
                 var content = await response.Content.ReadAsStringAsync();
-                return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content));
+                try
+                {
+                    return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content));
+                }
+                catch (Exception ex) when (!(ex is RequestException))
+                {
+                    throw new DeserializationException(response.StatusCode, content, typeof(TResponse), ex);
+                }
             }
         }
 

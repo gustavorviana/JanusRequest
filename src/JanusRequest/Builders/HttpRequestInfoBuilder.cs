@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 
@@ -162,23 +163,82 @@ namespace JanusRequest.Builders
         {
             foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                var headerAttr = property.GetCustomAttribute<HeaderAttribute>();
-                if (headerAttr != null)
-                {
-                    var value = property.GetValue(request);
-                    if (value != null)
-                        _headers[headerAttr.Name] = value.ToString();
+                if (ApplyHeader(property, request))
                     continue;
-                }
 
-                var collectionAttr = property.GetCustomAttribute<HeaderCollectionAttribute>();
-                if (collectionAttr != null)
+                ApplyCookies(property, request);
+            }
+        }
+
+        private bool ApplyHeader(PropertyInfo property, object request)
+        {
+            var collectionAttr = property.GetCustomAttribute<HeaderCollectionAttribute>();
+            var headerAttrs = property.GetCustomAttributes<HeaderAttribute>()?.ToArray();
+            var hasHeaderCollection = headerAttrs != null && headerAttrs.Length > 0;
+
+            if (collectionAttr != null && hasHeaderCollection)
+                throw new InvalidOperationException(
+                    $"Property '{property.Name}' cannot have both [Header] and [HeaderCollection] attributes.");
+
+            if (collectionAttr != null)
+            {
+                var value = property.GetValue(request);
+                if (value != null)
+                    ApplyHeaderCollection(value);
+
+                return true;
+            }
+
+            if (!hasHeaderCollection)
+                return false;
+
+            foreach (var headerAttr in headerAttrs)
+            {
+                var value = property.GetValue(request);
+                if (value != null)
+                    _headers[headerAttr.Name] = value.ToString();
+            }
+
+            return true;
+        }
+
+        private bool ApplyCookies(PropertyInfo property, object request)
+        {
+            var cookieCollectionAttr = property.GetCustomAttribute<CookieCollectionAttribute>();
+            var cookieAttrs = property.GetCustomAttributes<CookieAttribute>()?.ToArray();
+            var hasCookieCollection = cookieAttrs != null && cookieAttrs.Length > 0;
+
+            if (cookieCollectionAttr != null && hasCookieCollection)
+                throw new InvalidOperationException(
+                    $"Property '{property.Name}' cannot have both [Cookie] and [CookieCollection] attributes.");
+
+            if (cookieCollectionAttr != null)
+            {
+                var value = property.GetValue(request);
+                if (value != null)
+                    ApplyCookieCollection(value);
+
+                return true;
+            }
+
+            if (!hasCookieCollection)
+                return false;
+
+            foreach (var cookieAttr in cookieAttrs)
+            {
+                var value = property.GetValue(request);
+                if (value != null)
                 {
-                    var value = property.GetValue(request);
-                    if (value != null)
-                        ApplyHeaderCollection(value);
+                    var cookie = new Cookie(cookieAttr.Name, value.ToString());
+                    if (!string.IsNullOrEmpty(cookieAttr.Path))
+                        cookie.Path = cookieAttr.Path;
+                    if (!string.IsNullOrEmpty(cookieAttr.Domain))
+                        cookie.Domain = cookieAttr.Domain;
+                    _cookies[cookieAttr.Name] = cookie;
                 }
             }
+
+            return true;
         }
 
         private void ApplyHeaderCollection(object value)
@@ -220,6 +280,49 @@ namespace JanusRequest.Builders
                 {
                     if (!string.IsNullOrEmpty(kvp.Key))
                         _headers[kvp.Key] = kvp.Value?.ToString() ?? string.Empty;
+                }
+            }
+        }
+
+        private void ApplyCookieCollection(object value)
+        {
+            if (value is ICookieCollectionConvertible convertible)
+            {
+                foreach (var cookie in convertible.ToCookieCollection())
+                {
+                    if (!string.IsNullOrEmpty(cookie.Name))
+                        _cookies[cookie.Name] = cookie;
+                }
+                return;
+            }
+
+            if (value is IDictionary dict)
+            {
+                foreach (DictionaryEntry entry in dict)
+                {
+                    var key = entry.Key?.ToString();
+                    if (!string.IsNullOrEmpty(key))
+                        _cookies[key] = new Cookie(key, entry.Value?.ToString() ?? string.Empty);
+                }
+                return;
+            }
+
+            if (value is IEnumerable<KeyValuePair<string, string>> stringPairs)
+            {
+                foreach (var kvp in stringPairs)
+                {
+                    if (!string.IsNullOrEmpty(kvp.Key))
+                        _cookies[kvp.Key] = new Cookie(kvp.Key, kvp.Value ?? string.Empty);
+                }
+                return;
+            }
+
+            if (value is IEnumerable<KeyValuePair<string, object>> objectPairs)
+            {
+                foreach (var kvp in objectPairs)
+                {
+                    if (!string.IsNullOrEmpty(kvp.Key))
+                        _cookies[kvp.Key] = new Cookie(kvp.Key, kvp.Value?.ToString() ?? string.Empty);
                 }
             }
         }

@@ -7,7 +7,7 @@ namespace JanusRequest.Attributes
     /// Properties marked with this attribute are excluded from the request body during serialization.
     /// If the property value is null, the header is not sent.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
     public class HeaderAttribute : Attribute
     {
         /// <summary>

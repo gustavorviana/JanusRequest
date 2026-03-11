@@ -83,7 +83,7 @@ namespace JanusRequest.Tests
             SetupHttpResponse(HttpStatusCode.BadRequest, null!);
 
             // Act
-            await Assert.ThrowsAsync<System.Text.Json.JsonException>(async () => await _httpApiClient.SendAsync(request));
+            await Assert.ThrowsAsync<DeserializationException>(async () => await _httpApiClient.SendAsync(request));
 
             // Assert
             await handler.DidNotReceive().MapExceptionAsync(Arg.Any<HttpResponseMessage>());
@@ -101,7 +101,7 @@ namespace JanusRequest.Tests
             SetupHttpResponse(HttpStatusCode.InternalServerError, null!);
 
             // Act
-            var result = await Assert.ThrowsAsync<System.Text.Json.JsonException>(async() => await _httpApiClient.SendAsync(request));
+            var result = await Assert.ThrowsAsync<DeserializationException>(async() => await _httpApiClient.SendAsync(request));
 
             // Assert
             await recoveryHandler.DidNotReceive().RecoverAsync(Arg.Any<HttpRecoveryContext>());
