@@ -169,7 +169,7 @@ namespace JanusRequest.Tests
         public class RequestWithDeserializer3 : IRequestResponse<TestResponse3, TestDeserializer3> { }
 
         [Fact]
-        public async Task ConcurrentAccess_SameType_NoExceptionsAndCorrectResult()
+        public async Task ConcurrentAccess_SameType_NoExceptionsAndCorrectResultAsync()
         {
             // Arrange
             const int concurrency = 50;
@@ -191,7 +191,7 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
-        public async Task ConcurrentAccess_SameAttributeType_NoExceptionsAndCorrectResult()
+        public async Task ConcurrentAccess_SameAttributeType_NoExceptionsAndCorrectResultAsync()
         {
             // Arrange
             const int concurrency = 50;
@@ -213,7 +213,7 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
-        public async Task ConcurrentAccess_DifferentTypes_NoExceptionsAndCorrectResults()
+        public async Task ConcurrentAccess_DifferentTypes_NoExceptionsAndCorrectResultsAsync()
         {
             // Arrange
             const int concurrency = 50;
