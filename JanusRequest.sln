@@ -3,26 +3,28 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest", "JanusRequest\JanusRequest.csproj", "{6D4698F8-68BC-4226-AB05-E3F4B4E7EFC6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest", "src\JanusRequest\JanusRequest.csproj", "{6D4698F8-68BC-4226-AB05-E3F4B4E7EFC6}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Tests", "JanusRequest.Tests\JanusRequest.Tests.csproj", "{7201EC35-F8C1-438B-994E-816C6389753F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Tests", "tests\JanusRequest.Tests\JanusRequest.Tests.csproj", "{7201EC35-F8C1-438B-994E-816C6389753F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Extensions.DependencyInjection", "JanusRequest.Extensions.DependencyInjection\JanusRequest.Extensions.DependencyInjection.csproj", "{AC5E7F3E-3F4C-4F59-B5C3-6C01F87C5C9A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Extensions.DependencyInjection", "src\JanusRequest.Extensions.DependencyInjection\JanusRequest.Extensions.DependencyInjection.csproj", "{AC5E7F3E-3F4C-4F59-B5C3-6C01F87C5C9A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Extensions.DependencyInjection.Tests", "JanusRequest.Extensions.DependencyInjection.Tests\JanusRequest.Extensions.DependencyInjection.Tests.csproj", "{B4D8B5E6-4F01-4A1E-8F67-9F7D9B0E3F11}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Extensions.DependencyInjection.Tests", "tests\JanusRequest.Extensions.DependencyInjection.Tests\JanusRequest.Extensions.DependencyInjection.Tests.csproj", "{B4D8B5E6-4F01-4A1E-8F67-9F7D9B0E3F11}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Json.Newtonsoft", "JanusRequest.Json.Newtonsoft\JanusRequest.Json.Newtonsoft.csproj", "{1D14F259-1868-4062-AFC5-3AD66992E0E7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Json.Newtonsoft", "src\JanusRequest.Json.Newtonsoft\JanusRequest.Json.Newtonsoft.csproj", "{1D14F259-1868-4062-AFC5-3AD66992E0E7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{380A7511-A354-6D7A-0CC0-8FA1F1BA7B6C}"
 	ProjectSection(SolutionItems) = preProject
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Net462.Tests", "JanusRequest.Net462.Tests\JanusRequest.Net462.Tests.csproj", "{2551D524-F50F-B5AA-FE8B-8FBE592C51C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Net462.Tests", "tests\JanusRequest.Net462.Tests\JanusRequest.Net462.Tests.csproj", "{2551D524-F50F-B5AA-FE8B-8FBE592C51C3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Json.Newtonsoft.Tests", "JanusRequest.Json.Newtonsoft.Tests\JanusRequest.Json.Newtonsoft.Tests.csproj", "{190A0A61-C770-4CAC-A84B-392B11144229}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JanusRequest.Json.Newtonsoft.Tests", "tests\JanusRequest.Json.Newtonsoft.Tests\JanusRequest.Json.Newtonsoft.Tests.csproj", "{190A0A61-C770-4CAC-A84B-392B11144229}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9D78E5BF-4350-4D13-86F0-9679AC841921}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -123,8 +125,11 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{6D4698F8-68BC-4226-AB05-E3F4B4E7EFC6} = {9D78E5BF-4350-4D13-86F0-9679AC841921}
 		{7201EC35-F8C1-438B-994E-816C6389753F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{AC5E7F3E-3F4C-4F59-B5C3-6C01F87C5C9A} = {9D78E5BF-4350-4D13-86F0-9679AC841921}
 		{B4D8B5E6-4F01-4A1E-8F67-9F7D9B0E3F11} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{1D14F259-1868-4062-AFC5-3AD66992E0E7} = {9D78E5BF-4350-4D13-86F0-9679AC841921}
 		{2551D524-F50F-B5AA-FE8B-8FBE592C51C3} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{190A0A61-C770-4CAC-A84B-392B11144229} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
