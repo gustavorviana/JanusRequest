@@ -847,6 +847,71 @@ namespace JanusRequest.Tests
 
         #endregion
 
+        #region ContentToString with Custom Settings Tests
+
+        [Fact]
+        public void ApplyRequestObject_WithDateTimeHeader_UsesDateTimeFormatFromSettings()
+        {
+            // Arrange
+            var settings = new HttpApiClientSettings { DateTimeFormat = "yyyy-MM-dd" };
+            var builder = new HttpRequestInfoBuilder(settings);
+            var request = new TestRequestWithDateTimeHeader { Date = new DateTime(2025, 6, 15, 10, 30, 0) };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("2025-06-15", result.Headers["X-Date"]);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithDateTimeCookie_UsesDateTimeFormatFromSettings()
+        {
+            // Arrange
+            var settings = new HttpApiClientSettings { DateTimeFormat = "dd/MM/yyyy" };
+            var builder = new HttpRequestInfoBuilder(settings);
+            var request = new TestRequestWithDateTimeCookie { Expires = new DateTime(2025, 12, 25) };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("25/12/2025", result.Cookies["expires"]!.Value);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithTimeSpanHeader_UsesTimeFormatFromSettings()
+        {
+            // Arrange
+            var settings = new HttpApiClientSettings { TimeFormat = @"hh\:mm\:ss" };
+            var builder = new HttpRequestInfoBuilder(settings);
+            var request = new TestRequestWithTimeSpanHeader { Duration = new TimeSpan(2, 30, 45) };
+
+            // Act — use POST to avoid query builder also formatting the TimeSpan
+            var result = builder.SetMethod("POST").ApplyRequestObject(request).Build();
+
+            // Assert
+            Assert.Equal("02:30:45", result.Headers["X-Duration"]);
+        }
+
+        [Fact]
+        public void ApplyRequestObject_WithDateTimeHeader_DefaultSettings_UsesDefaultFormat()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder(); // default settings
+            var date = new DateTime(2025, 6, 15, 10, 30, 0);
+            var request = new TestRequestWithDateTimeHeader { Date = date };
+
+            // Act
+            var result = builder.ApplyRequestObject(request).Build();
+
+            // Assert
+            var expected = date.ToString(HttpApiClientSettings.Default.DateTimeFormat);
+            Assert.Equal(expected, result.Headers["X-Date"]);
+        }
+
+        #endregion
+
         #region ICookieCollectionConvertible with Cookie objects
 
         [Fact]
@@ -1077,6 +1142,24 @@ namespace JanusRequest.Tests
             {
                 yield return new Cookie("session", "abc123", "/api", ".example.com");
             }
+        }
+
+        private class TestRequestWithDateTimeHeader
+        {
+            [Header("X-Date")]
+            public DateTime Date { get; set; }
+        }
+
+        private class TestRequestWithDateTimeCookie
+        {
+            [Cookie("expires")]
+            public DateTime Expires { get; set; }
+        }
+
+        private class TestRequestWithTimeSpanHeader
+        {
+            [Header("X-Duration")]
+            public TimeSpan Duration { get; set; }
         }
     }
 }

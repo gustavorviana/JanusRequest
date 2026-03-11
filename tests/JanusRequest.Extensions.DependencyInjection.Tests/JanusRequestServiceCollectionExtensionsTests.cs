@@ -127,6 +127,22 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
             Assert.Null(clientFromFactory.Url);
         }
 
+        [Fact]
+        public void AddJanusRequestClient_RegistersIHttpApiClient_ResolvesToHttpApiClient()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddJanusRequestClient();
+            var provider = services.BuildServiceProvider();
+
+            // Act
+            var iHttpApiClient = provider.GetRequiredService<IHttpApiClient>();
+
+            // Assert
+            Assert.NotNull(iHttpApiClient);
+            Assert.IsType<HttpApiClient>(iHttpApiClient);
+        }
+
         // Named client overload tests
 
         [Fact]
@@ -269,7 +285,7 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
                 .ConfigureHttpClient((provider, httpClient) =>
                     httpClient.BaseAddress = new Uri("https://notifications.example.com"));
 
-            // Act — TryAddSingleton must ensure a single registration per type
+            // Act - TryAddSingleton must ensure a single registration per type
             var factoryRegistrations = services.Count(x => x.ServiceType == typeof(IHttpApiClientFactory));
             var loggerRegistrations = services.Count(x => x.ServiceType == typeof(IHttpApiClientLogger));
 
