@@ -1,8 +1,11 @@
 ﻿using JanusRequest.ContentTranslator;
+using System;
+using System.Net.Http;
 using System.Text;
 using System.Xml.Serialization;
+using Xunit;
 
-namespace JanusRequest.Tests.ContentTranslator
+namespace JanusRequest.Net462.Tests.ContentTranslator
 {
     public class XmlContentTranslatorTests
     {
