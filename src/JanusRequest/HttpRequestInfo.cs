@@ -1,4 +1,5 @@
 using JanusRequest.Builders;
+using System;
 using System.Collections.Specialized;
 using System.Net;
 
@@ -64,6 +65,22 @@ namespace JanusRequest
                 Headers = Headers,
                 Cookies = Cookies
             };
+        }
+
+        internal bool CanAddBody()
+        {
+            // HEAD and OPTIONS should never include a body
+            if (string.Equals(Method, "HEAD", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (string.Equals(Method, "GET", StringComparison.OrdinalIgnoreCase))
+                return AllowNonStandardBody.HasFlag(NonStandardBodyMethods.Get);
+
+            if (string.Equals(Method, "DELETE", StringComparison.OrdinalIgnoreCase))
+                return AllowNonStandardBody.HasFlag(NonStandardBodyMethods.Delete);
+
+            return true;
         }
     }
 }

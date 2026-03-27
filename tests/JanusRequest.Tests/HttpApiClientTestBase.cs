@@ -1,5 +1,4 @@
 using JanusRequest.Attributes;
-using JanusRequest.ContentTranslator;
 using NSubstitute;
 using System.ComponentModel.DataAnnotations;
 using System.Net;

@@ -284,7 +284,7 @@ namespace JanusRequest.Tests
             };
 
             // Act
-            urlQuery.Add(obj, withAttributesOnly: true);
+            urlQuery.Add(obj, strictQueryArgs: true);
             var result = urlQuery.ToString();
 
             // Assert
@@ -346,7 +346,136 @@ namespace JanusRequest.Tests
             Assert.Equal("?key=value2", result);
         }
 
+        [Fact]
+        public void Add_WithStrictQueryArgs_OnlyIncludesQueryArgProperties()
+        {
+            // Arrange
+            var urlQuery = new UrlQueryBuilder();
+            var obj = new TestObjectMixed
+            {
+                Name = "John",
+                UserId = 123,
+                Email = "john@example.com"
+            };
+
+            // Act
+            urlQuery.Add(obj, strictQueryArgs: true);
+            var result = urlQuery.ToString();
+
+            // Assert
+            Assert.Contains("user_id=123", result);
+            Assert.DoesNotContain("Name", result);
+            Assert.DoesNotContain("Email", result);
+        }
+
+        [Fact]
+        public void Add_WithStrictQueryArgsFalse_IncludesAllProperties()
+        {
+            // Arrange
+            var urlQuery = new UrlQueryBuilder();
+            var obj = new TestObjectMixed
+            {
+                Name = "John",
+                UserId = 123,
+                Email = "john@example.com"
+            };
+
+            // Act
+            urlQuery.Add(obj, strictQueryArgs: false);
+            var result = urlQuery.ToString();
+
+            // Assert
+            Assert.Contains("Name=John", result);
+            Assert.Contains("user_id=123", result);
+            Assert.Contains("Email=john%40example.com", result);
+        }
+
+        [Fact]
+        public void Add_WithDeeplyNestedObject_ProducesDottedPaths()
+        {
+            // Arrange
+            var urlQuery = new UrlQueryBuilder();
+            var obj = new DeepNested
+            {
+                Inner = new DeepNested.InnerLevel
+                {
+                    Value = "deep"
+                }
+            };
+
+            // Act
+            urlQuery.Add(obj);
+            var result = urlQuery.ToString();
+
+            // Assert
+            Assert.Contains("Inner.Value=deep", result);
+        }
+
+        [Fact]
+        public void BuildUrl_WithSinglePart_ReturnsUrlWithQuery()
+        {
+            // Arrange
+            var urlQuery = new UrlQueryBuilder();
+            urlQuery.Set("key", "value");
+
+            // Act
+            var result = urlQuery.BuildUrl("https://api.example.com");
+
+            // Assert
+            Assert.Equal("https://api.example.com?key=value", result);
+        }
+
+        [Fact]
+        public void BuildUrl_WithMultipleParts_JoinsWithSlash()
+        {
+            // Arrange
+            var urlQuery = new UrlQueryBuilder();
+            urlQuery.Set("id", 1);
+
+            // Act
+            var result = urlQuery.BuildUrl("https://api.example.com", "/users");
+
+            // Assert
+            Assert.Equal("https://api.example.com/users?id=1", result);
+        }
+
+        [Fact]
+        public void BuildUrl_WithTrailingAndLeadingSlashes_TrimsCorrectly()
+        {
+            // Arrange
+            var urlQuery = new UrlQueryBuilder();
+
+            // Act
+            var result = urlQuery.BuildUrl("https://api.example.com/", "/users/", "/42");
+
+            // Assert
+            Assert.Equal("https://api.example.com/users/42", result);
+        }
+
+        [Fact]
+        public void BuildUrl_WithEmptyQuery_ReturnsUrlOnly()
+        {
+            // Arrange
+            var urlQuery = new UrlQueryBuilder();
+
+            // Act
+            var result = urlQuery.BuildUrl("https://api.example.com", "/users");
+
+            // Assert
+            Assert.Equal("https://api.example.com/users", result);
+        }
+
         // Helper classes for testing
+        private class DeepNested
+        {
+            public InnerLevel Inner { get; set; }
+
+            public class InnerLevel
+            {
+                public string Value { get; set; }
+            }
+        }
+
         private class TestObjectWithIgnore
         {
             public string? Name { get; set; }

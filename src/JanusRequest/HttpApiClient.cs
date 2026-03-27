@@ -579,7 +579,7 @@ namespace JanusRequest
                 request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
             }
 
-            var canAddBody = body != null && CanAddBody(info);
+            var canAddBody = body != null && info.CanAddBody();
             if (canAddBody && Settings.TryParseContent(HttpApiClientSettings.GetMediaType(body.GetType()), body, out var content))
                 request.Content = content;
 
@@ -604,25 +604,6 @@ namespace JanusRequest
                  path.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
         }
 
-        private static bool CanAddBody(HttpRequestInfo info)
-        {
-            var httpMethod = info.Method;
-            var allowedMethods = info.AllowNonStandardBody;
-
-            // HEAD and OPTIONS should never include a body
-            if (string.Equals(httpMethod, "HEAD", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(httpMethod, "OPTIONS", StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            if (string.Equals(httpMethod, "GET", StringComparison.OrdinalIgnoreCase))
-                return allowedMethods.HasFlag(NonStandardBodyMethods.Get);
-
-            if (string.Equals(httpMethod, "DELETE", StringComparison.OrdinalIgnoreCase))
-                return allowedMethods.HasFlag(NonStandardBodyMethods.Delete);
-
-            return true;
-        }
-
         private HttpRequestInfo ConfigureRequest(HttpRequestInfo info, object request)
         {
             if (info == null)
@@ -632,7 +613,6 @@ namespace JanusRequest
                 .ApplyRequestObject(request)
                 .Build();
         }
-
         #region IDisposable
         ~HttpApiClient()
         {

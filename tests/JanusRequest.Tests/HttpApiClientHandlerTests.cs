@@ -101,7 +101,7 @@ namespace JanusRequest.Tests
             SetupHttpResponse(HttpStatusCode.InternalServerError, null!);
 
             // Act
-            var result = await Assert.ThrowsAsync<DeserializationException>(async() => await _httpApiClient.SendAsync(request));
+            var result = await Assert.ThrowsAsync<DeserializationException>(async () => await _httpApiClient.SendAsync(request));
 
             // Assert
             await recoveryHandler.DidNotReceive().RecoverAsync(Arg.Any<HttpRecoveryContext>());

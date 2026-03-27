@@ -25,6 +25,12 @@ namespace JanusRequest.Builders
         private string _pathTemplate;
 
         /// <summary>
+        /// When true, only properties explicitly marked with <see cref="QueryArgAttribute"/>
+        /// are included in the query string. Unmarked properties are ignored regardless of the HTTP method.
+        /// </summary>
+        public bool StrictQueryArgs { get; set; }
+
+        /// <summary>
         /// Gets the HTTP method that will be used for the request.
         /// </summary>
         public string Method { get; private set; }
@@ -47,7 +53,10 @@ namespace JanusRequest.Builders
         {
             _settings = settings ?? HttpApiClientSettings.Default;
             _pathTemplate = info.Path;
+
             Method = info.Method;
+            StrictQueryArgs = info.CanAddBody();
+
             AddQuery(info.Query);
             AddHeader(info.Headers);
             AddCookie(info.Cookies);
@@ -357,7 +366,12 @@ namespace JanusRequest.Builders
         {
             return new UrlQueryBuilder(_settings)
                 .Merge(_query)
-                .Add(_request, !method.Equals("GET", StringComparison.OrdinalIgnoreCase));
+                .Add(_request, StrictQueryArgs || !IsNonStandardBodyMethods(method));
+        }
+
+        private static bool IsNonStandardBodyMethods(string method)
+        {
+            return method.Equals("GET", StringComparison.OrdinalIgnoreCase) || method.Equals("DELETE", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

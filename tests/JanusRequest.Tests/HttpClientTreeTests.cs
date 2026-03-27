@@ -1,4 +1,6 @@
-﻿namespace JanusRequest.Tests
+﻿using JanusRequest.Nodes;
+
+namespace JanusRequest.Tests
 {
     public class HttpClientTreeTests
     {
@@ -245,6 +247,88 @@
 
             Assert.Throws<NotSupportedException>(() => methodNode.Add(propertyInfo));
         }
+
+        #region GetAllValues Tests
+
+        [Fact]
+        public void GetAllValues_ReturnsAllLeafPropertyValues()
+        {
+            var person = new Person();
+            var tree = new HttpClientTree(typeof(Person));
+
+            var values = tree.GetAllValues(person).ToList();
+
+            Assert.Contains(values, v => v.PathName == "Name" && (string)v.Value == "John Doe");
+            Assert.Contains(values, v => v.PathName == "Age" && (int)v.Value == 30);
+            Assert.Contains(values, v => v.PathName == "Address.Street" && (string)v.Value == "Main St");
+        }
+
+        [Fact]
+        public void GetAllValues_WithNestedObject_ProducesDottedPaths()
+        {
+            var company = new Company();
+            var tree = new HttpClientTree(typeof(Company));
+
+            var values = tree.GetAllValues(company).ToList();
+
+            Assert.Contains(values, v => v.PathName == "Owner.Name");
+            Assert.Contains(values, v => v.PathName == "Owner.Address.Street");
+        }
+
+        #endregion
+
+        #region IsValidMethod Tests
+
+        [Fact]
+        public void IsValidMethod_ParameterlessNonVoid_ReturnsTrue()
+        {
+            var method = typeof(Person).GetMethod("GetGreeting")!;
+            Assert.True(HttpClientTree.IsValidMethod(method));
+        }
+
+        [Fact]
+        public void IsValidMethod_VoidMethod_ReturnsFalse()
+        {
+            var method = typeof(WithVoidMethods).GetMethod("DoSomething")!;
+            Assert.False(HttpClientTree.IsValidMethod(method));
+        }
+
+        [Fact]
+        public void IsValidMethod_MethodWithParameters_ReturnsFalse()
+        {
+            var method = typeof(WithParams).GetMethod("Format")!;
+            Assert.False(HttpClientTree.IsValidMethod(method));
+        }
+
+        [Fact]
+        public void IsValidMethod_GenericMethod_ReturnsFalse()
+        {
+            var method = typeof(WithGenerics).GetMethod("Echo")!;
+            Assert.False(HttpClientTree.IsValidMethod(method));
+        }
+
+        [Fact]
+        public void IsValidMethod_PropertyGetter_ReturnsFalse()
+        {
+            var method = typeof(Person).GetMethod("get_Name")!;
+            Assert.False(HttpClientTree.IsValidMethod(method));
+        }
+
+        [Fact]
+        public void IsValidMethod_ObjectToString_IsValid()
+        {
+            var method = typeof(object).GetMethod("ToString")!;
+            Assert.True(HttpClientTree.IsValidMethod(method));
+        }
+
+        [Fact]
+        public void IsValidMethod_ObjectGetHashCode_ReturnsFalse()
+        {
+            var method = typeof(object).GetMethod("GetHashCode")!;
+            Assert.False(HttpClientTree.IsValidMethod(method));
+        }
+
+        #endregion
 
         #region Models
         private class Address

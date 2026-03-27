@@ -1,4 +1,5 @@
 ﻿using JanusRequest.Attributes;
+using JanusRequest.Nodes;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -95,15 +96,15 @@ namespace JanusRequest.Builders
         /// PathOnlyAttribute will also be excluded from query parameters.
         /// </summary>
         /// <param name="obj">The object to extract query parameters from. Can be null.</param>
-        /// <param name="withAttributesOnly">If true, only properties marked with QueryArgAttribute will be included.</param>
+        /// <param name="strictQueryArgs">If true, only properties marked with QueryArgAttribute will be included.</param>
         /// <returns>The current UrlQueryBuilder instance for method chaining.</returns>
-        public UrlQueryBuilder Add(object obj, bool withAttributesOnly = false)
+        public UrlQueryBuilder Add(object obj, bool strictQueryArgs = false)
         {
             if (obj == null || ReflectionUtils.IsNative(obj?.GetType(), true))
                 return this;
 
             var treee = _settings.GetTree(obj.GetType());
-            foreach (var nodeValue in treee.GetAllValues(obj, new NodeNamer(withAttributesOnly)))
+            foreach (var nodeValue in treee.GetAllValues(obj, new NodeNamer(strictQueryArgs)))
                 Set(nodeValue.PathName, GetValue(nodeValue), false);
 
             return this;
@@ -133,7 +134,7 @@ namespace JanusRequest.Builders
             return builder.ToString();
         }
 
-        private string GetValue(HttpClientTree.NodeValue nodeValue)
+        private string GetValue(NodeValue nodeValue)
         {
             if (ReflectionUtils.IsNative(nodeValue.Type, false))
                 return _settings.ContentToString(nodeValue.Value);
@@ -177,17 +178,17 @@ namespace JanusRequest.Builders
         /// Internal class for handling property naming and filtering when extracting query parameters from objects.
         /// This class determines which properties should be included in the query string and how they should be named.
         /// </summary>
-        private class NodeNamer : HttpClientTree.NodeNamer
+        private class NodeNamer : Nodes.NodeNamer
         {
-            private readonly bool _needAttribute;
+            private readonly bool _strictQueryArgs;
 
             /// <summary>
             /// Initializes a new instance of the NodeNamer class.
             /// </summary>
-            /// <param name="needAttribute">If true, only properties with QueryArgAttribute will be processed.</param>
-            public NodeNamer(bool needAttribute)
+            /// <param name="strictQueryArgs ">If true, only properties with QueryArgAttribute will be processed.</param>
+            public NodeNamer(bool strictQueryArgs)
             {
-                _needAttribute = needAttribute;
+                _strictQueryArgs = strictQueryArgs;
             }
 
             /// <summary>
@@ -211,7 +212,7 @@ namespace JanusRequest.Builders
                 if (member.MemberType != MemberTypes.Property || member.GetCustomAttribute<QueryIgnoreAttribute>() != null)
                     return false;
 
-                if (!_needAttribute)
+                if (!_strictQueryArgs)
                     return true;
 
                 return member.GetCustomAttribute<QueryArgAttribute>() != null;

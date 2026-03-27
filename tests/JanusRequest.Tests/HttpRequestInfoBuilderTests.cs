@@ -317,8 +317,7 @@ namespace JanusRequest.Tests
         [InlineData("POST")]
         [InlineData("PUT")]
         [InlineData("PATCH")]
-        [InlineData("DELETE")]
-        public void Build_WithNonGETMethods_ShouldNotAddRequestObjectToQuery(string method)
+        public void Build_WithNonGETAndDELETEMethods_ShouldNotAddRequestObjectToQuery(string method)
         {
             // Arrange
             var builder = new HttpRequestInfoBuilder()
@@ -330,6 +329,118 @@ namespace JanusRequest.Tests
 
             // Assert
             Assert.Empty(result.Query.ToString());
+        }
+
+        [Fact]
+        public void Build_WithGETMethod_ShouldAddAllPropertiesToQuery()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder()
+                .SetMethod("GET")
+                .ApplyRequestObject(new TestObjectWithMixed
+                {
+                    Name = "john",
+                    UserId = 42,
+                    Description = "test"
+                });
+
+            // Act
+            var result = builder.Build();
+            var queryString = result.Query.ToString();
+
+            // Assert
+            Assert.Contains("Name=john", queryString);
+            Assert.Contains("user_id=42", queryString);
+            Assert.Contains("Description=test", queryString);
+        }
+
+        [Fact]
+        public void Build_WithDELETEMethod_ShouldAddAllPropertiesToQuery()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder()
+                .SetMethod("DELETE")
+                .ApplyRequestObject(new TestObjectWithMixed
+                {
+                    Name = "john",
+                    UserId = 42,
+                    Description = "test"
+                });
+
+            // Act
+            var result = builder.Build();
+            var queryString = result.Query.ToString();
+
+            // Assert - DELETE is also a non-standard body method, so all properties go to query
+            Assert.Contains("Name=john", queryString);
+            Assert.Contains("user_id=42", queryString);
+            Assert.Contains("Description=test", queryString);
+        }
+
+        [Fact]
+        public void Build_WithPOSTMethod_OnlyQueryArgPropertiesInQuery()
+        {
+            // Arrange
+            var builder = new HttpRequestInfoBuilder()
+                .SetMethod("POST")
+                .ApplyRequestObject(new TestObjectWithMixed
+                {
+                    Name = "john",
+                    UserId = 42,
+                    Description = "test"
+                });
+
+            // Act
+            var result = builder.Build();
+            var queryString = result.Query.ToString();
+
+            // Assert - POST uses strict query args, only [QueryArg] properties
+            Assert.DoesNotContain("Name", queryString);
+            Assert.Contains("user_id=42", queryString);
+            Assert.DoesNotContain("Description", queryString);
+        }
+
+        [Fact]
+        public void Constructor_FromHttpRequestInfo_WithCanAddBodyTrue_SetsStrictQueryArgs()
+        {
+            // Arrange
+            var info = new HttpRequestInfo { Method = "POST" };
+
+            // Act
+            var builder = new HttpRequestInfoBuilder(info);
+
+            // Assert - POST can add body, so StrictQueryArgs should be true
+            Assert.True(builder.StrictQueryArgs);
+        }
+
+        [Fact]
+        public void Constructor_FromHttpRequestInfo_WithCanAddBodyFalse_SetsStrictQueryArgsFalse()
+        {
+            // Arrange
+            var info = new HttpRequestInfo { Method = "GET" };
+
+            // Act
+            var builder = new HttpRequestInfoBuilder(info);
+
+            // Assert - GET cannot add body by default, so StrictQueryArgs should be false
+            Assert.False(builder.StrictQueryArgs);
+        }
+
+        [Fact]
+        public void Constructor_FromHttpRequestInfo_WithGETAndNonStandardBody_SetsStrictQueryArgsTrue()
+        {
+            // Arrange
+            var info = new HttpRequestInfo
+            {
+                Method = "GET",
+                AllowNonStandardBody = NonStandardBodyMethods.Get
+            };
+
+            // Act
+            var builder = new HttpRequestInfoBuilder(info);
+
+            // Assert - GET with NonStandardBodyMethods.Get can add body, so StrictQueryArgs is true
+            Assert.True(builder.StrictQueryArgs);
         }
 
         #region Header Attribute Tests
@@ -1160,6 +1271,16 @@ namespace JanusRequest.Tests
         {
             [Header("X-Duration")]
             public TimeSpan Duration { get; set; }
+        }
+
+        private class TestObjectWithMixed
+        {
+            public string Name { get; set; }
+
+            [QueryArg("user_id")]
+            public int UserId { get; set; }
+
+            public string Description { get; set; }
         }
     }
 }
