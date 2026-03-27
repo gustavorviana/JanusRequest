@@ -25,6 +25,7 @@ A typed HTTP client library for .NET with attribute-based routing, automatic ser
 - [Logging](#logging)
 - [JSON Serialization](#json-serialization)
 - [Dependency Injection](#dependency-injection)
+- [Breaking Changes (v1.x → v2.x)](#breaking-changes-v1x--v2x)
 
 ---
 
@@ -550,3 +551,25 @@ public class NotificationService
 ```
 
 Calling `factory.CreateClient()` without arguments, or with a `null`/empty string, resolves the default client.
+
+---
+
+## Breaking Changes (v1.x → v2.x)
+
+> For a detailed migration guide with code examples, see [MIGRATION.md](MIGRATION.md).
+
+| Change | v1.x | v2.x |
+|---|---|---|
+| **Project structure** | `JanusRequest/` at root | `src/JanusRequest/` |
+| **`HttpApiClient` implements `IHttpApiClient`** | No interface, class only | Implements `IHttpApiClient`; methods are `virtual` |
+| **Sync extension methods target `IHttpApiClient`** | `this HttpApiClient` | `this IHttpApiClient` |
+| **`IRequestResponse<T, TDeserializer>` deprecated** | Primary API | Marked `[Obsolete]` — use `[ResponseDeserializer]` attribute on response type instead |
+| **`HttpApiClient.GetDeserializerType` deprecated** | Static method on client | Marked `[Obsolete]` — use `HttpApiClientSettings.GetDeserializerType` |
+| **`DefaultContentType` renamed** | `settings.DefaultContentType` | `settings.DefaultMediaType` (`DefaultContentType` kept as `[Obsolete]` proxy) |
+| **`AddJanusRequestClient` signature changed** | `AddJanusRequestClient(configureClient, configureSettings)` | `AddJanusRequestClient(configureSettings)` — configure `HttpClient` via `.ConfigureHttpClient()` on the returned `IHttpClientBuilder` |
+| **Named clients in DI** | Not supported | `AddJanusRequestClient(name, configureClient)` with `IHttpApiClientFactory.CreateClient(name)` |
+| **`DeserializationException` added** | Deserialization errors thrown as raw exceptions | Wrapped in `DeserializationException` (extends `RequestException`) with `Content`, `TargetType`, and `InnerException` |
+| **`RequestException` new constructor** | No `innerException` overload | Added `RequestException(statusCode, response, innerException)` |
+| **New attributes** | — | `[Header]`, `[HeaderCollection]`, `[Cookie]`, `[CookieCollection]`, `[ResponseDeserializer]` |
+| **Query string behavior for DELETE** | DELETE sends all properties as query args | DELETE now treated like POST/PUT (only `[QueryArg]` properties go to query string) unless `AllowNonStandardBody` is set |
+| **`net45` removed from DI package** | DI package targeted `net45` | DI package targets `netstandard2.0; net5.0; net6.0; net8.0` only |
