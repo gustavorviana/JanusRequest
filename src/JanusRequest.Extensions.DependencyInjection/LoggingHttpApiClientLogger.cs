@@ -30,14 +30,16 @@ namespace JanusRequest.Extensions.DependencyInjection
                 request.RequestUri?.ToString());
         }
 
-        public void LogResponse(HttpResponseMessage response)
+        public void LogResponse(HttpRequestMessage request, HttpResponseMessage response, TimeSpan elapsed)
         {
             if (response == null) return;
 
             _logger.LogDebug(
-                "Received HTTP {StatusCode} from {Url}",
-                (int)response.StatusCode,
-                response.RequestMessage?.RequestUri?.ToString());
+                "HTTP {Method} {Url} completed in {ElapsedMs}ms with status {StatusCode}",
+                request?.Method?.Method,
+                request?.RequestUri?.ToString(),
+                elapsed.TotalMilliseconds,
+                (int)response.StatusCode);
         }
 
         public void LogError(Exception exception, HttpRequestMessage request, HttpResponseMessage response)

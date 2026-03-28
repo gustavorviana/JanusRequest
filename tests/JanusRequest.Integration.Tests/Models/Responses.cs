@@ -53,3 +53,11 @@ public class Base64JsonResponse
     public string? Name { get; set; }
     public byte[]? Image { get; set; }
 }
+
+public class CombinedEchoResponse
+{
+    public Dictionary<string, string> Headers { get; set; } = new();
+    public Dictionary<string, string> Cookies { get; set; } = new();
+    public Dictionary<string, string> QueryParams { get; set; } = new();
+    public string? BodyValue { get; set; }
+}

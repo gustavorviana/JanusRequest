@@ -16,10 +16,12 @@ namespace JanusRequest
         void LogRequest(HttpRequestMessage request);
 
         /// <summary>
-        /// Logs an incoming HTTP response after it is received.
+        /// Logs an incoming HTTP response after it is received, including the request and elapsed time.
         /// </summary>
+        /// <param name="request">The HTTP request message that was sent.</param>
         /// <param name="response">The HTTP response message.</param>
-        void LogResponse(HttpResponseMessage response);
+        /// <param name="elapsed">The time elapsed from sending the request to receiving the response.</param>
+        void LogResponse(HttpRequestMessage request, HttpResponseMessage response, TimeSpan elapsed);
 
         /// <summary>
         /// Logs an error that occurred while sending a request or processing a response.

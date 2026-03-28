@@ -2,6 +2,7 @@ using JanusRequest.Builders;
 using JanusRequest.HttpHandlers;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -490,9 +491,19 @@ namespace JanusRequest
         public virtual async Task<HttpResponseMessage> SendHttpRequestAsync(object body, HttpRequestInfo info = null, CancellationToken cancellationToken = default)
         {
             ValidateBody(body);
-            var requestMessage = CreateHttpRequestMessage(ConfigureRequest(info, body), body);
+            var configuredInfo = ConfigureRequest(info, body);
+            var requestMessage = CreateHttpRequestMessage(configuredInfo, body);
             try
             {
+                if (configuredInfo.Timeout.HasValue)
+                {
+                    using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                    {
+                        cts.CancelAfter(configuredInfo.Timeout.Value);
+                        return await SendRequestAsync(requestMessage, cts.Token);
+                    }
+                }
+
                 return await SendRequestAsync(requestMessage, cancellationToken);
             }
             catch
@@ -539,8 +550,9 @@ namespace JanusRequest
             if (_disposed)
                 throw new ObjectDisposedException(GetType().FullName);
 
-            Logger?.LogRequest(request);
+            LogAll(l => l.LogRequest(request));
 
+            var stopwatch = Stopwatch.StartNew();
             HttpResponseMessage response;
             try
             {
@@ -548,11 +560,12 @@ namespace JanusRequest
             }
             catch (Exception ex)
             {
-                Logger?.LogError(ex, request, null);
+                LogAll(l => l.LogError(ex, request, null));
                 throw;
             }
+            stopwatch.Stop();
 
-            Logger?.LogResponse(response);
+            LogAll(l => l.LogResponse(request, response, stopwatch.Elapsed));
 
             if (response.IsSuccessStatusCode)
                 return response;
@@ -560,13 +573,22 @@ namespace JanusRequest
             if (Settings.TryGetHandler<HttpErrorHandler>(response, out var handler))
             {
                 var mapped = await handler.MapExceptionAsync(response);
-                Logger?.LogError(mapped, request, response);
+                LogAll(l => l.LogError(mapped, request, response));
                 throw mapped;
             }
 
-            Logger?.LogError(new RequestException(response.StatusCode, Utils.ExtractHeaders(response)), request, response);
+            LogAll(l => l.LogError(new RequestException(response.StatusCode, Utils.ExtractHeaders(response)), request, response));
 
             return response;
+        }
+
+        private void LogAll(Action<IHttpApiClientLogger> action)
+        {
+            if (Logger != null)
+                action(Logger);
+
+            foreach (var logger in Settings.Loggers)
+                action(logger);
         }
 
         private async Task<HttpResponseMessage> InternalSendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)

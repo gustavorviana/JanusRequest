@@ -56,6 +56,7 @@ public class TestServerFixture : IAsyncLifetime
         MapContentTypeEndpoints(app);
         MapBase64Endpoints(app);
         MapTimeoutEndpoints(app);
+        MapCombinedEchoEndpoint(app);
     }
 
     private static void MapCrudEndpoints(WebApplication app)
@@ -322,6 +323,36 @@ public class TestServerFixture : IAsyncLifetime
             await ctx.Response.WriteAsync("done");
         });
     }
+
+    private static void MapCombinedEchoEndpoint(WebApplication app)
+    {
+        app.MapPost("/api/echo/combined", async (HttpContext ctx) =>
+        {
+            var headers = new Dictionary<string, string>();
+            foreach (var header in ctx.Request.Headers)
+                headers[header.Key] = header.Value.ToString();
+
+            var cookies = new Dictionary<string, string>();
+            foreach (var cookie in ctx.Request.Cookies)
+                cookies[cookie.Key] = cookie.Value;
+
+            var queryParams = new Dictionary<string, string>();
+            foreach (var param in ctx.Request.Query)
+                queryParams[param.Key] = param.Value.ToString();
+
+            var body = await ctx.Request.ReadFromJsonAsync<CombinedEchoBody>();
+
+            await ctx.Response.WriteAsJsonAsync(new
+            {
+                Headers = headers,
+                Cookies = cookies,
+                QueryParams = queryParams,
+                BodyValue = body?.Value
+            });
+        });
+    }
+
+    private record CombinedEchoBody(string? Value);
 
     // Internal DTOs for server-side deserialization (not shared with client)
     private record CreateItemBody(string? Name);

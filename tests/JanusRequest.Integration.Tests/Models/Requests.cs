@@ -126,6 +126,23 @@ public class FormUrlEncodedRequest : IRequestResponse<FormEchoResponse>
     public string? Password { get; set; }
 }
 
+// === Combined Echo (Header + Cookie + QueryArg + Body) ===
+
+[Request("/api/echo/combined", Method = "POST")]
+public class CombinedEchoRequest : IRequestResponse<CombinedEchoResponse>
+{
+    [Header("X-Combined-Header")]
+    public string? CustomHeader { get; set; }
+
+    [Cookie("combined-session")]
+    public string? SessionCookie { get; set; }
+
+    [QueryArg("tag")]
+    public string? Tag { get; set; }
+
+    public string? Value { get; set; }
+}
+
 // === Base64 JSON ===
 
 [Request("/api/content/base64-json", Method = "POST")]

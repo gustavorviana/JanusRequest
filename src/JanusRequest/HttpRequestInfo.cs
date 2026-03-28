@@ -50,6 +50,12 @@ namespace JanusRequest
         public CookieCollection Cookies { get; set; } = new CookieCollection();
 
         /// <summary>
+        /// Gets or sets the per-request timeout. When set, overrides the global HttpClient.Timeout for this request.
+        /// If null, the global timeout is used.
+        /// </summary>
+        public TimeSpan? Timeout { get; set; }
+
+        /// <summary>
         /// Creates a deep copy of the current HttpRequestInfo instance with an optional method override.
         /// </summary>
         /// <param name="method">The HTTP method to use in the clone. If null, uses the current Method value.</param>
@@ -67,7 +73,8 @@ namespace JanusRequest
                 Path = Path,
                 Query = Query?.Clone(),
                 Headers = new NameValueCollection(Headers),
-                Cookies = cookies
+                Cookies = cookies,
+                Timeout = Timeout
             };
         }
 

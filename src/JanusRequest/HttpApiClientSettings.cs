@@ -3,6 +3,7 @@ using JanusRequest.ContentTranslator;
 using JanusRequest.HttpHandlers;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
@@ -25,6 +26,7 @@ namespace JanusRequest
         private IFormatProvider _formatProvider = CultureInfo.InvariantCulture;
         private static HttpApiClientSettings _default = new HttpApiClientSettings();
         private IHttpHandlerBase[] _handlers = new IHttpHandlerBase[0];
+        private readonly List<IHttpApiClientLogger> _loggers = new List<IHttpApiClientLogger>();
 
         /// <summary>
         /// Global content translator overrides keyed by content type name.
@@ -139,6 +141,24 @@ namespace JanusRequest
             _handlers = handlers;
             return this;
         }
+
+        /// <summary>
+        /// Adds a logger that will be called during request processing.
+        /// Multiple loggers can be registered and all will be invoked.
+        /// </summary>
+        /// <param name="logger">The logger to add.</param>
+        /// <returns>The current HttpApiClientSettings instance for method chaining.</returns>
+        public HttpApiClientSettings AddLogger(IHttpApiClientLogger logger)
+        {
+            if (logger == null) throw new ArgumentNullException(nameof(logger));
+            _loggers.Add(logger);
+            return this;
+        }
+
+        /// <summary>
+        /// Gets the registered loggers.
+        /// </summary>
+        internal IReadOnlyList<IHttpApiClientLogger> Loggers => _loggers;
 
         /// <summary>
         /// Sets the content type translators used for serializing and deserializing different content types.

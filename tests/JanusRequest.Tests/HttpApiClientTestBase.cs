@@ -118,17 +118,17 @@ namespace JanusRequest.Tests
                 LastRequest = request;
             }
 
-            public void LogResponse(HttpResponseMessage response)
-            {
-                ResponseCount++;
-                LastResponse = response;
-            }
-
             public void LogError(Exception exception, HttpRequestMessage request, HttpResponseMessage response)
             {
                 ErrorCount++;
                 LastException = exception;
                 LastRequest = request;
+                LastResponse = response;
+            }
+
+            public void LogResponse(HttpRequestMessage request, HttpResponseMessage response, TimeSpan elapsed)
+            {
+                ResponseCount++;
                 LastResponse = response;
             }
         }

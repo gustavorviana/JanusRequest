@@ -382,7 +382,7 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
 
             // Act
             adapter.LogRequest(request);
-            adapter.LogResponse(response);
+            adapter.LogResponse(request, response, TimeSpan.FromMilliseconds(150));
             adapter.LogError(exception, request, response);
 
             // Assert: request log
@@ -397,7 +397,8 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
             logger.Received(1).Log(
                 LogLevel.Debug,
                 Arg.Any<EventId>(),
-                Arg.Is<object>(s => s.ToString() == "Received HTTP 500 from https://api.example.com/resource"),
+                Arg.Is<object>(s => s.ToString().Contains("HTTP GET https://api.example.com/resource completed in")
+                                    && s.ToString().Contains("ms with status 500")),
                 Arg.Any<Exception>(),
                 Arg.Any<Func<object, Exception, string>>());
 
