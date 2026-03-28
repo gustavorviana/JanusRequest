@@ -125,3 +125,19 @@ public class FormUrlEncodedRequest : IRequestResponse<FormEchoResponse>
     public string? Username { get; set; }
     public string? Password { get; set; }
 }
+
+// === Base64 JSON ===
+
+[Request("/api/content/base64-json", Method = "POST")]
+public class Base64JsonByteArrayRequest : IRequestResponse<Base64JsonResponse>
+{
+    public string? Name { get; set; }
+    public byte[]? Image { get; set; }
+}
+
+[Request("/api/content/base64-json", Method = "POST")]
+public class Base64JsonStreamRequest : IRequestResponse<Base64JsonResponse>
+{
+    public string? Name { get; set; }
+    public Stream? Image { get; set; }
+}

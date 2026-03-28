@@ -224,6 +224,113 @@ namespace JanusRequest.Json.Newtonsoft.Tests
             public string? Name { get; set; }
         }
 
+        [Fact]
+        public void Serialize_ByteArray_SerializesAsBase64StringByDefault()
+        {
+            var bytes = new byte[] { 1, 2, 3, 4, 5 };
+            var request = new TestRequestWithBase64 { ImageData = bytes };
+
+            var json = _translator.Serialize(request);
+
+            var expected = Convert.ToBase64String(bytes);
+            Assert.Contains($"\"{expected}\"", json);
+            Assert.DoesNotContain("[1,2,3,4,5]", json);
+        }
+
+        [Fact]
+        public void Serialize_Stream_SerializesAsBase64StringByDefault()
+        {
+            var bytes = new byte[] { 10, 20, 30, 40, 50 };
+            var request = new TestRequestWithBase64 { StreamData = new MemoryStream(bytes) };
+
+            var json = _translator.Serialize(request);
+
+            var expected = Convert.ToBase64String(bytes);
+            Assert.Contains($"\"{expected}\"", json);
+        }
+
+        [Fact]
+        public void Serialize_ByteArrayWithRawBytesAttribute_UsesDefaultSerializerBehavior()
+        {
+            var bytes = new byte[] { 1, 2, 3 };
+            var request = new TestRequestWithBase64 { RawData = bytes };
+
+            var json = _translator.Serialize(request);
+
+            // Newtonsoft.Json default for byte[] is also base64, so [RawBytes] preserves that default.
+            var expected = Convert.ToBase64String(bytes);
+            Assert.Contains($"\"{expected}\"", json);
+        }
+
+        [Fact]
+        public void Serialize_WhenBase64PropertyIsNull_SerializesAsNull()
+        {
+            var request = new TestRequestWithBase64 { ImageData = null };
+
+            var json = _translator.Serialize(request);
+
+            Assert.Contains("null", json);
+        }
+
+        [Fact]
+        public void Deserialize_Base64String_DeserializesToByteArray()
+        {
+            var originalBytes = new byte[] { 1, 2, 3, 4, 5 };
+            var base64 = Convert.ToBase64String(originalBytes);
+            var json = $"{{\"ImageData\":\"{base64}\"}}";
+
+            var result = _translator.Deserialize<TestResponseWithBase64>(json);
+
+            Assert.NotNull(result);
+            Assert.Equal(originalBytes, result.ImageData);
+        }
+
+        [Fact]
+        public void Deserialize_Base64String_DeserializesToStream()
+        {
+            var originalBytes = new byte[] { 10, 20, 30 };
+            var base64 = Convert.ToBase64String(originalBytes);
+            var json = $"{{\"StreamData\":\"{base64}\"}}";
+
+            var result = _translator.Deserialize<TestResponseWithBase64>(json);
+
+            Assert.NotNull(result);
+            Assert.NotNull(result.StreamData);
+            Assert.IsType<MemoryStream>(result.StreamData);
+            using var ms = (MemoryStream)result.StreamData;
+            Assert.Equal(originalBytes, ms.ToArray());
+        }
+
+        [Fact]
+        public void Serialize_Deserialize_ByteArray_RoundTrip()
+        {
+            var originalBytes = new byte[] { 0, 127, 255, 1, 100 };
+            var request = new TestRequestWithBase64 { Name = "test", ImageData = originalBytes };
+
+            var json = _translator.Serialize(request);
+            var result = _translator.Deserialize<TestResponseWithBase64>(json);
+
+            Assert.Equal("test", result.Name);
+            Assert.Equal(originalBytes, result.ImageData);
+        }
+
+        public class TestResponseWithBase64
+        {
+            public string? Name { get; set; }
+            public byte[]? ImageData { get; set; }
+            public Stream? StreamData { get; set; }
+        }
+
+        public class TestRequestWithBase64
+        {
+            public string? Name { get; set; }
+            public byte[]? ImageData { get; set; }
+            public Stream? StreamData { get; set; }
+
+            [RawBytes]
+            public byte[]? RawData { get; set; }
+        }
+
         public class TestRequestWithAttributes
         {
             public int Id { get; set; }

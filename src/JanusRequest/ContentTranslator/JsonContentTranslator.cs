@@ -69,9 +69,17 @@ namespace JanusRequest.ContentTranslator
                 return default;
 
 #if NETSTANDARD2_0_OR_GREATER || NET472_OR_GREATER || NET5_0_OR_GREATER
-            return System.Text.Json.JsonSerializer.Deserialize<T>(json);
+            var options = new JsonSerializerOptions
+            {
+                TypeInfoResolver = new IgnoreRestApiAttributesResolver()
+            };
+            return System.Text.Json.JsonSerializer.Deserialize<T>(json, options);
 #else
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json);
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json,
+                new Newtonsoft.Json.JsonSerializerSettings
+                {
+                    ContractResolver = new IgnoreRestApiAttributesContractResolver()
+                });
 #endif
         }
     }

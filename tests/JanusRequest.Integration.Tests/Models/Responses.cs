@@ -47,3 +47,9 @@ public class FormEchoResponse
 {
     public Dictionary<string, string> Fields { get; set; } = new();
 }
+
+public class Base64JsonResponse
+{
+    public string? Name { get; set; }
+    public byte[]? Image { get; set; }
+}

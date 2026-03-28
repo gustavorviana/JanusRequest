@@ -54,6 +54,7 @@ public class TestServerFixture : IAsyncLifetime
         MapRetryEndpoints(app);
         MapErrorEndpoints(app);
         MapContentTypeEndpoints(app);
+        MapBase64Endpoints(app);
         MapTimeoutEndpoints(app);
     }
 
@@ -286,6 +287,23 @@ public class TestServerFixture : IAsyncLifetime
             await ctx.Response.WriteAsJsonAsync(new FormEchoResponse { Fields = fields });
         });
     }
+
+    private static void MapBase64Endpoints(WebApplication app)
+    {
+        app.MapPost("/api/content/base64-json", async (HttpContext ctx) =>
+        {
+            var body = await ctx.Request.ReadFromJsonAsync<Base64JsonBody>();
+            // Echo back the same data — the Image field arrives as base64 string in JSON,
+            // System.Text.Json on the server deserializes byte[] from base64 natively
+            await ctx.Response.WriteAsJsonAsync(new
+            {
+                Name = body?.Name,
+                Image = body?.Image // Will be serialized back as base64 by STJ
+            });
+        });
+    }
+
+    private record Base64JsonBody(string? Name, byte[]? Image);
 
     private static void MapTimeoutEndpoints(WebApplication app)
     {
