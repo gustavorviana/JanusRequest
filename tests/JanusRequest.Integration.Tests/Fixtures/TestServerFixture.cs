@@ -49,6 +49,7 @@ public class TestServerFixture : IAsyncLifetime
     {
         MapCrudEndpoints(app);
         MapAuthEndpoints(app);
+        MapAuthenticatorEndpoints(app);
         MapEchoEndpoints(app);
         MapFileEndpoints(app);
         MapRetryEndpoints(app);
@@ -134,6 +135,58 @@ public class TestServerFixture : IAsyncLifetime
             }
 
             return Results.Ok(new AuthInfoResponse { ApiKey = apiKey });
+        });
+    }
+
+    private void MapAuthenticatorEndpoints(WebApplication app)
+    {
+        // Returns the auth token echo if a valid Bearer token is present.
+        // Used to verify that IHttpAuthenticator.AuthenticateAsync is called before the request.
+        app.MapGet("/api/authenticator/protected", (HttpContext ctx) =>
+        {
+            var authHeader = ctx.Request.Headers.Authorization.ToString();
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                return Results.Unauthorized();
+
+            var token = authHeader["Bearer ".Length..];
+            return Results.Ok(new AuthInfoResponse { Scheme = "Bearer", Token = token });
+        });
+
+        // Simulates a token-refresh scenario.
+        // The first call for a given key returns 401; subsequent calls with the refreshed token ("refreshed-token") succeed.
+        app.MapPost("/api/authenticator/token-refresh", (HttpContext ctx) =>
+        {
+            var key = ctx.Request.Query["key"].ToString();
+            var count = GetAndIncrementCallCount($"token-refresh-{key}");
+
+            // First call always returns 401 to force the authenticator to refresh
+            if (count == 1)
+                return Results.Unauthorized();
+
+            var authHeader = ctx.Request.Headers.Authorization.ToString();
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                return Results.Unauthorized();
+
+            var token = authHeader["Bearer ".Length..];
+            return Results.Ok(new AuthInfoResponse { Scheme = "Bearer", Token = token });
+        });
+
+        // Simulates a forbidden scenario that can be resolved by re-authentication.
+        // First call returns 403; subsequent calls with valid token succeed.
+        app.MapPost("/api/authenticator/forbidden-refresh", (HttpContext ctx) =>
+        {
+            var key = ctx.Request.Query["key"].ToString();
+            var count = GetAndIncrementCallCount($"forbidden-refresh-{key}");
+
+            if (count == 1)
+                return Results.StatusCode(403);
+
+            var authHeader = ctx.Request.Headers.Authorization.ToString();
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                return Results.StatusCode(403);
+
+            var token = authHeader["Bearer ".Length..];
+            return Results.Ok(new AuthInfoResponse { Scheme = "Bearer", Token = token });
         });
     }
 

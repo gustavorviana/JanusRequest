@@ -24,6 +24,7 @@ namespace JanusRequest.Builders
         private object _request = null;
         private string _pathTemplate;
         private readonly TimeSpan? _timeout;
+        private readonly IHttpAuthenticator _authenticator;
 
         /// <summary>
         /// When true, only properties explicitly marked with <see cref="QueryArgAttribute"/>
@@ -55,6 +56,7 @@ namespace JanusRequest.Builders
             _settings = settings ?? HttpApiClientSettings.Default;
             _pathTemplate = info.Path;
             _timeout = info.Timeout;
+            _authenticator = info.Authenticator;
 
             Method = info.Method;
             StrictQueryArgs = info.CanAddBody();
@@ -173,6 +175,7 @@ namespace JanusRequest.Builders
                 Query = BuildQuery(method),
                 Method = method,
                 Timeout = _timeout,
+                Authenticator = _authenticator,
             };
         }
 

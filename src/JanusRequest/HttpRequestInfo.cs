@@ -56,6 +56,12 @@ namespace JanusRequest
         public TimeSpan? Timeout { get; set; }
 
         /// <summary>
+        /// Gets or sets a per-request authenticator that overrides <see cref="HttpApiClientSettings.Authenticator"/>
+        /// for this specific request. When null, the settings-level authenticator (if any) is used.
+        /// </summary>
+        public IHttpAuthenticator Authenticator { get; set; }
+
+        /// <summary>
         /// Creates a deep copy of the current HttpRequestInfo instance with an optional method override.
         /// </summary>
         /// <param name="method">The HTTP method to use in the clone. If null, uses the current Method value.</param>
@@ -74,7 +80,8 @@ namespace JanusRequest
                 Query = Query?.Clone(),
                 Headers = new NameValueCollection(Headers),
                 Cookies = cookies,
-                Timeout = Timeout
+                Timeout = Timeout,
+                Authenticator = Authenticator
             };
         }
 

@@ -492,19 +492,37 @@ namespace JanusRequest
         {
             ValidateBody(body);
             var configuredInfo = ConfigureRequest(info, body);
+            var authenticator = configuredInfo.Authenticator ?? Settings.Authenticator;
             var requestMessage = CreateHttpRequestMessage(configuredInfo, body);
+
+            if (authenticator != null)
+                await authenticator.AuthenticateAsync(requestMessage, _httpClient);
+
+            var response = await InternalSendRequest(configuredInfo, requestMessage, cancellationToken);
+            if ((response.StatusCode != HttpStatusCode.Unauthorized && response.StatusCode != HttpStatusCode.Forbidden) || authenticator == null)
+                return response;
+
+            var retryMessage = CreateHttpRequestMessage(configuredInfo, body);
+            var shouldRetry = await authenticator.HandleUnauthorizedAsync(retryMessage, response, _httpClient);
+            if (!shouldRetry)
+                return response;
+
+            response.Dispose();
+            return await InternalSendRequest(configuredInfo, retryMessage, cancellationToken);
+        }
+
+        private async Task<HttpResponseMessage> InternalSendRequest(HttpRequestInfo configuredInfo, HttpRequestMessage requestMessage, CancellationToken cancellationToken)
+        {
             try
             {
-                if (configuredInfo.Timeout.HasValue)
-                {
-                    using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
-                    {
-                        cts.CancelAfter(configuredInfo.Timeout.Value);
-                        return await SendRequestAsync(requestMessage, cts.Token);
-                    }
-                }
+                if (!configuredInfo.Timeout.HasValue)
+                    return await SendRequestAsync(requestMessage, cancellationToken);
 
-                return await SendRequestAsync(requestMessage, cancellationToken);
+                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                {
+                    cts.CancelAfter(configuredInfo.Timeout.Value);
+                    return await SendRequestAsync(requestMessage, cts.Token);
+                }
             }
             catch
             {
@@ -523,20 +541,6 @@ namespace JanusRequest
         }
         #endregion
 
-        /// <summary>
-        /// Gets the deserializer type for the specified response type by examining the IRequestResponse interface.
-        /// </summary>
-        /// <param name="responseType">The type to get the deserializer for.</param>
-        /// <returns>The deserializer type if found, null otherwise.</returns>
-        [Obsolete("Use HttpApiClientSettings.GetDeserializerType instead. This method will be removed in v3.")]
-        public static Type GetDeserializerType(Type responseType)
-        {
-            var interfaceType = responseType.GetInterfaces()
-                .FirstOrDefault(i => i.IsGenericType &&
-                                    i.GetGenericTypeDefinition() == typeof(IRequestResponse<,>));
-
-            return interfaceType?.GetGenericArguments()[1];
-        }
 
         private IResponseDeserializer<TResponse> GetDeserializer<TResponse>(Type requestType, Type responseType)
         {

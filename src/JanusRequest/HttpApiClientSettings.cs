@@ -72,18 +72,6 @@ namespace JanusRequest
         private string _defaultMediaType = HttpContentType.Json;
 
         /// <summary>
-        /// Gets or sets the default content type used when no specific content type is specified.
-        /// This property is kept for backward compatibility and simply proxies
-        /// to <see cref="DefaultMediaType"/>.
-        /// </summary>
-        [Obsolete("Use " + nameof(DefaultMediaType) + " instead. This property will be removed in v3.")]
-        public string DefaultContentType
-        {
-            get => DefaultMediaType;
-            set => DefaultMediaType = value;
-        }
-
-        /// <summary>
         /// Gets or sets the default HTTP media type used when sending request content
         /// when no specific content type is explicitly provided.
         /// </summary>
@@ -109,6 +97,13 @@ namespace JanusRequest
         /// Default value is true to maintain backward compatibility.
         /// </summary>
         public bool ValidateRequest { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the global authenticator applied to every request made by clients using these settings.
+        /// Can be overridden on a per-request basis via <see cref="HttpRequestInfo.Authenticator"/>.
+        /// When null, no authenticator-based authentication is applied.
+        /// </summary>
+        public IHttpAuthenticator Authenticator { get; set; }
 
         /// <summary>
         /// Gets or sets whether response headers should be included in error logs
