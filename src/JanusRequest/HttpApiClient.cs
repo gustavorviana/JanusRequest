@@ -17,7 +17,7 @@ namespace JanusRequest
     /// error handling, and recovery mechanisms. Provides a fluent interface for configuring authentication,
     /// headers, and request parameters while supporting various content types and response handling strategies.
     /// </summary>
-    public class HttpApiClient : IHttpApiClient
+    public class HttpApiClient : IHttpApiClient, IHttpApiDataClient
     {
         private bool _disposed;
 
@@ -154,6 +154,22 @@ namespace JanusRequest
             _httpClient.DefaultRequestHeaders.Authorization = null;
             return this;
         }
+
+        #endregion
+
+        #region Explicit Interface Auth Implementations
+
+        IHttpApiClientBase IHttpApiClientBase.SetBasicAuthentication(string username, string password) => SetBasicAuthentication(username, password);
+        IHttpApiClientBase IHttpApiClientBase.SetBearerAuthentication(string token) => SetBearerAuthentication(token);
+        IHttpApiClientBase IHttpApiClientBase.SetApiKeyAuthentication(string apiKey, string headerName) => SetApiKeyAuthentication(apiKey, headerName);
+        IHttpApiClientBase IHttpApiClientBase.SetAuthentication(string scheme, string value) => SetAuthentication(scheme, value);
+        IHttpApiClientBase IHttpApiClientBase.ClearAuthentication() => ClearAuthentication();
+
+        IHttpApiDataClient IHttpApiDataClient.SetBasicAuthentication(string username, string password) { SetBasicAuthentication(username, password); return this; }
+        IHttpApiDataClient IHttpApiDataClient.SetBearerAuthentication(string token) { SetBearerAuthentication(token); return this; }
+        IHttpApiDataClient IHttpApiDataClient.SetApiKeyAuthentication(string apiKey, string headerName) { SetApiKeyAuthentication(apiKey, headerName); return this; }
+        IHttpApiDataClient IHttpApiDataClient.SetAuthentication(string scheme, string value) { SetAuthentication(scheme, value); return this; }
+        IHttpApiDataClient IHttpApiDataClient.ClearAuthentication() { ClearAuthentication(); return this; }
 
         #endregion
 
@@ -625,6 +641,86 @@ namespace JanusRequest
                 .ApplyRequestObject(request)
                 .Build();
         }
+        #region IHttpApiDataClient
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> GetDataAsync<TResponse>(string url, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await GetAsync<TResponse>(url, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> GetDataAsync<TResponse>(HttpRequestInfo info, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await GetAsync<TResponse>(info, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> GetDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await GetAsync(body, info, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> GetDataAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await GetAsync(body, url, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> PostDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await PostAsync(body, info, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> PostDataAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await PostAsync(body, url, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> PutDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await PutAsync(body, info, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> PutDataAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await PutAsync(body, url, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> DeleteDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await DeleteAsync(body, info, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> DeleteDataAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await DeleteAsync(body, url, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> PatchDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await PatchAsync(body, info, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> PatchDataAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await PatchAsync(body, url, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> SendDataAsync<TResponse>(string httpMethod, IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await SendAsync(httpMethod, body, info, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> SendDataAsync<TResponse>(string httpMethod, IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await SendAsync(httpMethod, body, url, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> SendDataAsync<TResponse>(IRequestResponse<TResponse> body, string path, string method = "GET", CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await SendAsync(body, path, method, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> SendDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await SendAsync(body, info, cancellationToken));
+
+        /// <inheritdoc />
+        public virtual async Task<TResponse> SendDataAsync<TResponse>(HttpRequestInfo info, CancellationToken cancellationToken = default) where TResponse : class
+            => EnsureSuccessAndGetData(await SendAsync<TResponse>(info, cancellationToken));
+
+        private static TResponse EnsureSuccessAndGetData<TResponse>(RestApiResponse<TResponse> response)
+        {
+            var statusCode = (int)response.Status;
+            if (statusCode < 200 || statusCode >= 300)
+                throw new RequestException(response.Status);
+            return response.Data;
+        }
+
+        #endregion
+
         #region IDisposable
         ~HttpApiClient()
         {

@@ -143,6 +143,22 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
             Assert.IsType<HttpApiClient>(iHttpApiClient);
         }
 
+        [Fact]
+        public void AddJanusRequestClient_RegistersIHttpApiDataClient_ResolvesToHttpApiClient()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddJanusRequestClient();
+            var provider = services.BuildServiceProvider();
+
+            // Act
+            var dataClient = provider.GetRequiredService<IHttpApiDataClient>();
+
+            // Assert
+            Assert.NotNull(dataClient);
+            Assert.IsType<HttpApiClient>(dataClient);
+        }
+
         // Named client overload tests
 
         [Fact]
