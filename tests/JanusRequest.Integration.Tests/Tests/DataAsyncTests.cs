@@ -95,4 +95,77 @@ public class DataAsyncTests
 
         Assert.Equal(HttpStatusCode.InternalServerError, ex.StatusCode);
     }
+
+    [Fact]
+    public async Task SendDataAsync_Delete204NoContent_ReturnsNull()
+    {
+        using var client = CreateClient();
+        var info = new HttpRequestInfo { Path = "/api/items/1", Method = "DELETE" };
+
+        var result = await client.SendDataAsync<ItemResponse>(info);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task DeleteDataAsync_204NoContent_ReturnsNull()
+    {
+        using var client = CreateClient();
+        var info = new HttpRequestInfo { Path = "/api/items/2", Method = "DELETE" };
+
+        var result = await client.SendDataAsync<ItemResponse>(info);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void AuthChaining_IHttpApiDataClient_ReturnsSameInterface()
+    {
+        using var client = CreateClient();
+        IHttpApiDataClient dataClient = client;
+
+        var result = dataClient.SetBearerAuthentication("test-token");
+
+        Assert.IsAssignableFrom<IHttpApiDataClient>(result);
+        Assert.Same(client, result);
+    }
+
+    [Fact]
+    public void AuthChaining_IHttpApiClient_ReturnsSameInterface()
+    {
+        using var client = CreateClient();
+        IHttpApiClient apiClient = client;
+
+        var result = apiClient.SetBearerAuthentication("test-token");
+
+        Assert.IsAssignableFrom<IHttpApiClient>(result);
+        Assert.Same(client, result);
+    }
+
+    [Fact]
+    public void AuthChaining_IHttpApiDataClient_AllMethodsReturnCorrectType()
+    {
+        using var client = CreateClient();
+        IHttpApiDataClient dataClient = client;
+
+        Assert.IsAssignableFrom<IHttpApiDataClient>(dataClient.SetBasicAuthentication("user", "pass"));
+        Assert.IsAssignableFrom<IHttpApiDataClient>(dataClient.SetBearerAuthentication("token"));
+        Assert.IsAssignableFrom<IHttpApiDataClient>(dataClient.SetApiKeyAuthentication("key"));
+        Assert.IsAssignableFrom<IHttpApiDataClient>(dataClient.SetAuthentication("Custom", "value"));
+        Assert.IsAssignableFrom<IHttpApiDataClient>(dataClient.ClearAuthentication());
+    }
+
+    [Fact]
+    public async Task PostDataAsync_WithBearerAuth_SendsAuthenticatedRequest()
+    {
+        using var client = CreateClient();
+        IHttpApiDataClient dataClient = client;
+
+        dataClient.SetBearerAuthentication("my-secret-token");
+        var result = await client.GetDataAsync<AuthInfoResponse>("/api/auth/bearer");
+
+        Assert.NotNull(result);
+        Assert.Equal("Bearer", result.Scheme);
+        Assert.Equal("my-secret-token", result.Token);
+    }
 }
