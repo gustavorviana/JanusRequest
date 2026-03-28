@@ -1,19 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net45;net472;netstandard2.0;net5.0;net7.0;net8.0</TargetFrameworks>
 
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<PackageIcon>icon.png</PackageIcon>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageId>JanusRequest</PackageId>
 		<Title>JanusRequest - HTTP API Client Library</Title>
-		<Authors>Gustavo Viana</Authors>
-		<PackageProjectUrl>https://github.com/gustavorviana/JanusRequest</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<RepositoryUrl>https://github.com/gustavorviana/JanusRequest</RepositoryUrl>
-		<RepositoryType>git</RepositoryType>
 		<Company />
 		<PackageReleaseNotes>
 			Core improvements and integrations:
@@ -54,35 +48,27 @@
 		<Reference Include="System.Web" />
 		<Reference Include="System.ComponentModel.DataAnnotations" />
 		<Reference Include="System.Net.Http" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+		<PackageReference Include="Newtonsoft.Json" />
 	</ItemGroup>
-	
+
 	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
 		<Reference Include="System.Web" />
 		<Reference Include="System.ComponentModel.DataAnnotations" />
 		<Reference Include="System.Net.Http" />
-		<PackageReference Include="System.Text.Json">
-			<Version>8.0.5</Version>
-		</PackageReference>
+		<PackageReference Include="System.Text.Json" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-		<PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
-		<PackageReference Include="System.Text.Json">
-			<Version>8.0.5</Version>
-		</PackageReference>
+		<PackageReference Include="System.ComponentModel.Annotations" />
+		<PackageReference Include="System.Text.Json" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
-		<PackageReference Include="System.Text.Json">
-			<Version>8.0.5</Version>
-		</PackageReference>
+		<PackageReference Include="System.Text.Json" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="System.Text.Json">
-			<Version>8.0.5</Version>
-		</PackageReference>
+		<PackageReference Include="System.Text.Json" />
 	</ItemGroup>
 
 	<ItemGroup>
