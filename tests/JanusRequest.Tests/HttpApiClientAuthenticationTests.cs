@@ -3,26 +3,27 @@ namespace JanusRequest.Tests
     public class HttpApiClientAuthenticationTests : HttpApiClientTestBase
     {
         [Fact]
-        public void SetBasicAuthentication_SetsAuthorizationHeader()
+        public void SetBasicAuthentication_SetsAuthenticator()
         {
             // Act
             _httpApiClient.SetBasicAuthentication("user", "password");
 
             // Assert
-            Assert.Equal("Basic", _httpClient.DefaultRequestHeaders.Authorization!.Scheme);
-            Assert.Equal(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("user:password")),
-                _httpClient.DefaultRequestHeaders.Authorization.Parameter);
+            var auth = Assert.IsType<AuthorizationHeaderAuthenticator>(_httpApiClient.Settings.Authenticator);
+            Assert.Equal("Basic", auth.Scheme);
+            Assert.Equal(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("user:password")), auth.Value);
         }
 
         [Fact]
-        public void SetBearerAuthentication_SetsAuthorizationHeader()
+        public void SetBearerAuthentication_SetsAuthenticator()
         {
             // Act
             _httpApiClient.SetBearerAuthentication("token123");
 
             // Assert
-            Assert.Equal("Bearer", _httpClient.DefaultRequestHeaders.Authorization!.Scheme);
-            Assert.Equal("token123", _httpClient.DefaultRequestHeaders.Authorization.Parameter);
+            var auth = Assert.IsType<AuthorizationHeaderAuthenticator>(_httpApiClient.Settings.Authenticator);
+            Assert.Equal("Bearer", auth.Scheme);
+            Assert.Equal("token123", auth.Value);
         }
 
         [Fact]
@@ -32,8 +33,9 @@ namespace JanusRequest.Tests
             _httpApiClient.SetApiKeyAuthentication("key123", "X-Custom-Key");
 
             // Assert
-            Assert.True(_httpClient.DefaultRequestHeaders.Contains("X-Custom-Key"));
-            Assert.Contains("key123", _httpClient.DefaultRequestHeaders.GetValues("X-Custom-Key"));
+            var auth = Assert.IsType<ApiKeyAuthenticator>(_httpApiClient.Settings.Authenticator);
+            Assert.Equal("key123", auth.ApiKey);
+            Assert.Equal("X-Custom-Key", auth.HeaderName);
         }
 
         [Fact]
@@ -43,12 +45,13 @@ namespace JanusRequest.Tests
             _httpApiClient.SetApiKeyAuthentication("key123");
 
             // Assert
-            Assert.True(_httpClient.DefaultRequestHeaders.Contains("X-API-Key"));
-            Assert.Contains("key123", _httpClient.DefaultRequestHeaders.GetValues("X-API-Key"));
+            var auth = Assert.IsType<ApiKeyAuthenticator>(_httpApiClient.Settings.Authenticator);
+            Assert.Equal("key123", auth.ApiKey);
+            Assert.Equal("X-API-Key", auth.HeaderName);
         }
 
         [Fact]
-        public void ClearAuthentication_RemovesAuthorizationHeader()
+        public void ClearAuthentication_RemovesAuthenticator()
         {
             // Arrange
             _httpApiClient.SetBearerAuthentication("token");
@@ -57,18 +60,19 @@ namespace JanusRequest.Tests
             _httpApiClient.ClearAuthentication();
 
             // Assert
-            Assert.Null(_httpClient.DefaultRequestHeaders.Authorization);
+            Assert.Null(_httpApiClient.Settings.Authenticator);
         }
 
         [Fact]
-        public void SetAuthentication_WithCustomScheme_SetsAuthorizationHeader()
+        public void SetAuthentication_WithCustomScheme_SetsAuthenticator()
         {
             // Act
             _httpApiClient.SetAuthentication("Custom", "custom-token");
 
             // Assert
-            Assert.Equal("Custom", _httpClient.DefaultRequestHeaders.Authorization!.Scheme);
-            Assert.Equal("custom-token", _httpClient.DefaultRequestHeaders.Authorization.Parameter);
+            var auth = Assert.IsType<AuthorizationHeaderAuthenticator>(_httpApiClient.Settings.Authenticator);
+            Assert.Equal("Custom", auth.Scheme);
+            Assert.Equal("custom-token", auth.Value);
         }
 
         [Fact]

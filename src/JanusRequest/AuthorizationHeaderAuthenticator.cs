@@ -1,5 +1,7 @@
+using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace JanusRequest
@@ -9,7 +11,7 @@ namespace JanusRequest
     /// This class contains no business logic — it only applies the configured scheme and value.
     /// For advanced scenarios (token refresh, OAuth), implement <see cref="IHttpAuthenticator"/> directly.
     /// </summary>
-    public class HttpAuthenticator : IHttpAuthenticator
+    public class AuthorizationHeaderAuthenticator : IHttpAuthenticator
     {
         /// <summary>
         /// Gets or sets the authentication scheme (e.g., "Bearer", "Basic").
@@ -22,14 +24,25 @@ namespace JanusRequest
         public string Value { get; set; }
 
         /// <summary>
-        /// Creates a new HttpAuthenticator with the specified scheme and value.
+        /// Creates a new AuthorizationHeaderAuthenticator with the specified scheme and value.
         /// </summary>
         /// <param name="scheme">The authentication scheme (e.g., "Bearer", "Basic").</param>
         /// <param name="value">The authentication value (e.g., token, encoded credentials).</param>
-        public HttpAuthenticator(string scheme, string value)
+        public AuthorizationHeaderAuthenticator(string scheme, string value)
         {
             Scheme = scheme;
             Value = value;
+        }
+
+        /// <summary>
+        /// Creates a Basic authentication authenticator from username and password.
+        /// </summary>
+        /// <param name="username">The username for authentication.</param>
+        /// <param name="password">The password for authentication.</param>
+        /// <returns>A new AuthorizationHeaderAuthenticator configured for Basic authentication.</returns>
+        public static AuthorizationHeaderAuthenticator Basic(string username, string password)
+        {
+            return new AuthorizationHeaderAuthenticator("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}")));
         }
 
         /// <summary>

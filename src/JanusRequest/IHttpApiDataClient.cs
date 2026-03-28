@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,37 +10,8 @@ namespace JanusRequest
     /// This interface simplifies common usage patterns where callers only need the response data
     /// and want automatic error handling without inspecting HTTP metadata.
     /// </summary>
-    public interface IHttpApiDataClient : IHttpApiClientBase
+    public interface IHttpApiDataClient : IDisposable
     {
-        #region Authentication
-
-        /// <summary>
-        /// Sets basic authentication using username and password.
-        /// </summary>
-        new IHttpApiDataClient SetBasicAuthentication(string username, string password);
-
-        /// <summary>
-        /// Sets bearer token authentication.
-        /// </summary>
-        new IHttpApiDataClient SetBearerAuthentication(string token);
-
-        /// <summary>
-        /// Sets API key authentication using a custom header.
-        /// </summary>
-        new IHttpApiDataClient SetApiKeyAuthentication(string apiKey, string headerName = "X-API-Key");
-
-        /// <summary>
-        /// Sets custom authentication with the specified scheme and value.
-        /// </summary>
-        new IHttpApiDataClient SetAuthentication(string scheme, string value);
-
-        /// <summary>
-        /// Clears any existing authentication configuration.
-        /// </summary>
-        new IHttpApiDataClient ClearAuthentication();
-
-        #endregion
-
         #region GET
 
         /// <summary>

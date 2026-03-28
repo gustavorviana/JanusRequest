@@ -24,7 +24,7 @@ public class AuthenticatorTests
         using var client = CreateClient();
         client.Settings = new HttpApiClientSettings
         {
-            Authenticator = new HttpAuthenticator("Bearer", "my-initial-token")
+            Authenticator = new AuthorizationHeaderAuthenticator("Bearer", "my-initial-token")
         };
 
         var response = await client.GetAsync<AuthInfoResponse>("/api/authenticator/protected");
@@ -66,14 +66,14 @@ public class AuthenticatorTests
         using var client = CreateClient();
         client.Settings = new HttpApiClientSettings
         {
-            Authenticator = new HttpAuthenticator("Bearer", "global-token")
+            Authenticator = new AuthorizationHeaderAuthenticator("Bearer", "global-token")
         };
 
         var info = new HttpRequestInfo
         {
             Path = "/api/authenticator/protected",
             Method = "GET",
-            Authenticator = new HttpAuthenticator("Bearer", "per-request-token")
+            Authenticator = new AuthorizationHeaderAuthenticator("Bearer", "per-request-token")
         };
 
         var response = await client.SendAsync<AuthInfoResponse>(info);

@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,7 +17,7 @@ namespace JanusRequest
     /// error handling, and recovery mechanisms. Provides a fluent interface for configuring authentication,
     /// headers, and request parameters while supporting various content types and response handling strategies.
     /// </summary>
-    public class HttpApiClient : IHttpApiClient, IHttpApiDataClient
+    public class HttpApiClient : IHttpApiClient
     {
         private bool _disposed;
 
@@ -107,7 +106,7 @@ namespace JanusRequest
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
         public IHttpApiClient SetBasicAuthentication(string username, string password)
         {
-            SetAuthentication("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}")));
+            Settings.Authenticator = AuthorizationHeaderAuthenticator.Basic(username, password);
             return this;
         }
 
@@ -118,7 +117,8 @@ namespace JanusRequest
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
         public IHttpApiClient SetBearerAuthentication(string token)
         {
-            return SetAuthentication("Bearer", token);
+            Settings.Authenticator = new AuthorizationHeaderAuthenticator("Bearer", token);
+            return this;
         }
 
         /// <summary>
@@ -129,8 +129,7 @@ namespace JanusRequest
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
         public IHttpApiClient SetApiKeyAuthentication(string apiKey, string headerName = "X-API-Key")
         {
-            _httpClient.DefaultRequestHeaders.Remove(headerName);
-            _httpClient.DefaultRequestHeaders.Add(headerName, apiKey);
+            Settings.Authenticator = new ApiKeyAuthenticator(apiKey, headerName);
             return this;
         }
 
@@ -142,7 +141,7 @@ namespace JanusRequest
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
         public IHttpApiClient SetAuthentication(string scheme, string value)
         {
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(scheme, value);
+            Settings.Authenticator = new AuthorizationHeaderAuthenticator(scheme, value);
             return this;
         }
 
@@ -152,25 +151,9 @@ namespace JanusRequest
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
         public IHttpApiClient ClearAuthentication()
         {
-            _httpClient.DefaultRequestHeaders.Authorization = null;
+            Settings.Authenticator = null;
             return this;
         }
-
-        #endregion
-
-        #region Explicit Interface Auth Implementations
-
-        IHttpApiClientBase IHttpApiClientBase.SetBasicAuthentication(string username, string password) => SetBasicAuthentication(username, password);
-        IHttpApiClientBase IHttpApiClientBase.SetBearerAuthentication(string token) => SetBearerAuthentication(token);
-        IHttpApiClientBase IHttpApiClientBase.SetApiKeyAuthentication(string apiKey, string headerName) => SetApiKeyAuthentication(apiKey, headerName);
-        IHttpApiClientBase IHttpApiClientBase.SetAuthentication(string scheme, string value) => SetAuthentication(scheme, value);
-        IHttpApiClientBase IHttpApiClientBase.ClearAuthentication() => ClearAuthentication();
-
-        IHttpApiDataClient IHttpApiDataClient.SetBasicAuthentication(string username, string password) { SetBasicAuthentication(username, password); return this; }
-        IHttpApiDataClient IHttpApiDataClient.SetBearerAuthentication(string token) { SetBearerAuthentication(token); return this; }
-        IHttpApiDataClient IHttpApiDataClient.SetApiKeyAuthentication(string apiKey, string headerName) { SetApiKeyAuthentication(apiKey, headerName); return this; }
-        IHttpApiDataClient IHttpApiDataClient.SetAuthentication(string scheme, string value) { SetAuthentication(scheme, value); return this; }
-        IHttpApiDataClient IHttpApiDataClient.ClearAuthentication() { ClearAuthentication(); return this; }
 
         #endregion
 

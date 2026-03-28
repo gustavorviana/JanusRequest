@@ -209,8 +209,9 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
 
             // Assert
             Assert.True(configureApplied);
-            Assert.Equal("Bearer", client.DefaultHeaders.Authorization!.Scheme);
-            Assert.Equal("test-token", client.DefaultHeaders.Authorization.Parameter);
+            var auth = Assert.IsType<AuthorizationHeaderAuthenticator>(client.Settings.Authenticator);
+            Assert.Equal("Bearer", auth.Scheme);
+            Assert.Equal("test-token", auth.Value);
         }
 
         [Fact]

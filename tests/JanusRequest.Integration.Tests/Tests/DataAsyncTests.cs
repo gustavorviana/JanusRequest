@@ -119,19 +119,7 @@ public class DataAsyncTests
     }
 
     [Fact]
-    public void AuthChaining_IHttpApiDataClient_ReturnsSameInterface()
-    {
-        using var client = CreateClient();
-        IHttpApiDataClient dataClient = client;
-
-        var result = dataClient.SetBearerAuthentication("test-token");
-
-        Assert.IsAssignableFrom<IHttpApiDataClient>(result);
-        Assert.Same(client, result);
-    }
-
-    [Fact]
-    public void AuthChaining_IHttpApiClient_ReturnsSameInterface()
+    public void AuthChaining_IHttpApiClient_ReturnsSameInstance()
     {
         using var client = CreateClient();
         IHttpApiClient apiClient = client;
@@ -143,25 +131,11 @@ public class DataAsyncTests
     }
 
     [Fact]
-    public void AuthChaining_IHttpApiDataClient_AllMethodsReturnCorrectType()
-    {
-        using var client = CreateClient();
-        IHttpApiDataClient dataClient = client;
-
-        Assert.IsAssignableFrom<IHttpApiDataClient>(dataClient.SetBasicAuthentication("user", "pass"));
-        Assert.IsAssignableFrom<IHttpApiDataClient>(dataClient.SetBearerAuthentication("token"));
-        Assert.IsAssignableFrom<IHttpApiDataClient>(dataClient.SetApiKeyAuthentication("key"));
-        Assert.IsAssignableFrom<IHttpApiDataClient>(dataClient.SetAuthentication("Custom", "value"));
-        Assert.IsAssignableFrom<IHttpApiDataClient>(dataClient.ClearAuthentication());
-    }
-
-    [Fact]
     public async Task PostDataAsync_WithBearerAuth_SendsAuthenticatedRequest()
     {
         using var client = CreateClient();
-        IHttpApiDataClient dataClient = client;
+        client.SetBearerAuthentication("my-secret-token");
 
-        dataClient.SetBearerAuthentication("my-secret-token");
         var result = await client.GetDataAsync<AuthInfoResponse>("/api/auth/bearer");
 
         Assert.NotNull(result);
