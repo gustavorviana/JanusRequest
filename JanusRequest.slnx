@@ -1,0 +1,21 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/JanusRequest.Extensions.DependencyInjection/JanusRequest.Extensions.DependencyInjection.csproj" />
+    <Project Path="src/JanusRequest.Json.Newtonsoft/JanusRequest.Json.Newtonsoft.csproj" />
+    <Project Path="src/JanusRequest/JanusRequest.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JanusRequest.Extensions.DependencyInjection.Tests/JanusRequest.Extensions.DependencyInjection.Tests.csproj" />
+    <Project Path="tests/JanusRequest.Json.Newtonsoft.Tests/JanusRequest.Json.Newtonsoft.Tests.csproj" />
+    <Project Path="tests/JanusRequest.Net462.Tests/JanusRequest.Net462.Tests.csproj" />
+    <Project Path="tests/JanusRequest.Tests/JanusRequest.Tests.csproj" />
+  </Folder>
+</Solution>
