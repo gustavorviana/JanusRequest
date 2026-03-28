@@ -43,11 +43,19 @@ namespace JanusRequest.Nodes
 
         public void Map()
         {
+            Map(new HashSet<Type>());
+        }
+
+        private void Map(HashSet<Type> visited)
+        {
+            if (!visited.Add(MemberValueType))
+                return;
+
             foreach (var prop in MemberValueType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
                 var node = Add(prop);
                 if (!ReflectionUtils.IsNative(node.MemberValueType, false))
-                    node.Map();
+                    node.Map(visited);
             }
 
             foreach (var method in MemberValueType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))

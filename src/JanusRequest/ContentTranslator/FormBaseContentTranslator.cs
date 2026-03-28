@@ -44,7 +44,7 @@ namespace JanusRequest.ContentTranslator
         /// <returns>True if the property should be ignored, false if it should be included in form data.</returns>
         protected virtual internal bool ShouldIgnoreProperty(PropertyInfo property)
         {
-            return property.CustomAttributes.Any(x => DisalowedTypes.Contains(x.AttributeType));
+            return property.CustomAttributes.Any(x => DisallowedTypes.Contains(x.AttributeType));
         }
 
         /// <summary>

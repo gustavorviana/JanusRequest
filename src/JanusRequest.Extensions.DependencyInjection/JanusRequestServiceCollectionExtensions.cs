@@ -84,7 +84,7 @@ namespace JanusRequest.Extensions.DependencyInjection
 
             TryRegisterCore(services);
 
-            var registry = services.FirstOrDefault(x => x.ImplementationType == typeof(HttpApiClientConfiguratorRegistry))?.ImplementationInstance as HttpApiClientConfiguratorRegistry;
+            var registry = services.FirstOrDefault(x => x.ServiceType == typeof(HttpApiClientConfiguratorRegistry))?.ImplementationInstance as HttpApiClientConfiguratorRegistry;
             if (registry == null)
             {
                 registry = new HttpApiClientConfiguratorRegistry();
@@ -107,11 +107,9 @@ namespace JanusRequest.Extensions.DependencyInjection
                 var clientFactory = x.GetRequiredService<IHttpClientFactory>();
                 var settings = x.GetRequiredService<HttpApiClientSettings>();
                 var logger = x.GetRequiredService<IHttpApiClientLogger>();
+                var registry = x.GetService<HttpApiClientConfiguratorRegistry>();
 
-                return new HttpApiClientFactory(x, clientFactory, settings, logger)
-                {
-                    ConfiguratorRegistry = x.GetService<HttpApiClientConfiguratorRegistry>()
-                };
+                return new HttpApiClientFactory(x, clientFactory, settings, logger, registry);
             });
         }
     }

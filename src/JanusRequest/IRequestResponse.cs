@@ -9,7 +9,7 @@ namespace JanusRequest
     /// </summary>
     /// <typeparam name="TResponse">The type of the expected response object.</typeparam>
     /// <typeparam name="TDeserializer">The type of the custom deserializer that implements IResponseDeserializer&lt;TResponse&gt;.</typeparam>
-    [Obsolete("Specifying the deserializer on the request is deprecated. Apply JanusRequest.Attributes.ResponseDeserializerAttribute to the response type instead.")]
+    [Obsolete("Specifying the deserializer on the request is deprecated and will be removed in v3. Apply JanusRequest.Attributes.ResponseDeserializerAttribute to the response type instead.")]
     public interface IRequestResponse<TResponse, TDeserializer>
         : IRequestResponse<TResponse>
         where TResponse : class

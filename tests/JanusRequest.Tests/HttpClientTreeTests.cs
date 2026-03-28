@@ -330,6 +330,21 @@ namespace JanusRequest.Tests
 
         #endregion
 
+        [Fact]
+        public void GetValue_WithCircularReference_ShouldNotCauseStackOverflow()
+        {
+            // Arrange
+            var tree = new HttpClientTree(typeof(CircularTypeA));
+
+            var obj = new CircularTypeA { Name = "Test", Nested = new CircularTypeB { Value = 42 } };
+
+            // Act
+            var result = tree.GetValue(obj, "Name");
+
+            // Assert
+            Assert.Equal("Test", result);
+        }
+
         #region Models
         private class Address
         {
@@ -395,6 +410,18 @@ namespace JanusRequest.Tests
             private string GetSecret() => "Secret Value";
 
             public string GetName() => Name;
+        }
+
+        private class CircularTypeA
+        {
+            public string Name { get; set; }
+            public CircularTypeB Nested { get; set; }
+        }
+
+        private class CircularTypeB
+        {
+            public int Value { get; set; }
+            public CircularTypeA Back { get; set; }
         }
         #endregion
     }

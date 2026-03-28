@@ -16,7 +16,7 @@ namespace JanusRequest.ContentTranslator
         /// These attributes (QueryArgAttribute, PathOnlyAttribute) indicate that properties should not
         /// be included in the request body content.
         /// </summary>
-        protected internal static Type[] DisalowedTypes { get; } = new[]
+        protected internal static Type[] DisallowedTypes { get; } = new[]
         {
             typeof(QueryArgAttribute),
             typeof(PathOnlyAttribute),

@@ -17,7 +17,7 @@ namespace JanusRequest
     /// If a value is later registered for an exact media type, any cached redirect for that
     /// media type is removed automatically.
     /// </summary>
-    internal sealed class MediaTypeMap<TValue> : IDictionary<string, TValue>
+    internal sealed class MediaTypeMap<TValue> : IDictionary<string, TValue>, IDisposable
     {
         private readonly Dictionary<string, string> _redirectCache;
         private readonly Dictionary<string, TValue> _values;
@@ -165,14 +165,34 @@ namespace JanusRequest
 
         void IDictionary<string, TValue>.Add(string key, TValue value)
         {
-            _values.Add(key, value);
-            _redirectCache.Remove(key);
+            key = MediaTypeNormalizer.NormalizeMediaType(key);
+
+            _lock.EnterWriteLock();
+            try
+            {
+                _values.Add(key, value);
+                _redirectCache.Remove(key);
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
         }
 
         void ICollection<KeyValuePair<string, TValue>>.Add(KeyValuePair<string, TValue> item)
         {
-            _values.Add(item.Key, item.Value);
-            _redirectCache.Remove(item.Key);
+            var key = MediaTypeNormalizer.NormalizeMediaType(item.Key);
+
+            _lock.EnterWriteLock();
+            try
+            {
+                _values.Add(key, item.Value);
+                _redirectCache.Remove(key);
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
         }
 
         bool ICollection<KeyValuePair<string, TValue>>.Contains(KeyValuePair<string, TValue> item)
@@ -180,7 +200,15 @@ namespace JanusRequest
 
         void ICollection<KeyValuePair<string, TValue>>.CopyTo(KeyValuePair<string, TValue>[] array, int arrayIndex)
         {
-
+            _lock.EnterReadLock();
+            try
+            {
+                ((ICollection<KeyValuePair<string, TValue>>)_values).CopyTo(array, arrayIndex);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
         bool ICollection<KeyValuePair<string, TValue>>.Remove(KeyValuePair<string, TValue> item)
@@ -210,6 +238,11 @@ namespace JanusRequest
             {
                 _lock.ExitReadLock();
             }
+        }
+
+        public void Dispose()
+        {
+            _lock?.Dispose();
         }
     }
 }

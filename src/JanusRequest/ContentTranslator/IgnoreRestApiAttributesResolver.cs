@@ -26,7 +26,7 @@ namespace JanusRequest.ContentTranslator
                 if (!(prop.AttributeProvider is MemberInfo member))
                     continue;
 
-                if (member.CustomAttributes.Any(a => ContentTypeTranslator.DisalowedTypes.Contains(a.AttributeType)))
+                if (member.CustomAttributes.Any(a => ContentTypeTranslator.DisallowedTypes.Contains(a.AttributeType)))
                     toRemove.Add(prop);
             }
 
@@ -47,7 +47,7 @@ namespace JanusRequest.ContentTranslator
         protected override Newtonsoft.Json.Serialization.JsonProperty CreateProperty(MemberInfo member, Newtonsoft.Json.MemberSerialization memberSerialization)
         {
             var property = base.CreateProperty(member, memberSerialization);
-            if (member.CustomAttributes.Any(x => ContentTypeTranslator.DisalowedTypes.Contains(x.AttributeType)))
+            if (member.CustomAttributes.Any(x => ContentTypeTranslator.DisallowedTypes.Contains(x.AttributeType)))
                 property.ShouldSerialize = _ => false;
             return property;
         }

@@ -101,7 +101,7 @@ namespace JanusRequest.ContentTranslator
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
             foreach (var property in properties)
-                if (property.GetCustomAttributes().Any(x => DisalowedTypes.Contains(x.GetType())))
+                if (property.GetCustomAttributes().Any(x => DisallowedTypes.Contains(x.GetType())))
                     overrides.Add(type, property.Name, new XmlAttributes
                     {
                         XmlIgnore = true

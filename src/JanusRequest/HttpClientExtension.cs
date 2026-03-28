@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -17,6 +16,10 @@ namespace JanusRequest
         /// Sends a synchronous GET request to the specified URL without a body and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous GET operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="url">The URL to send the GET request to.</param>
@@ -30,6 +33,10 @@ namespace JanusRequest
         /// Sends a synchronous GET request using the specified request information without a body and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous GET operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="info">The request information including path, headers, and query parameters.</param>
@@ -43,6 +50,10 @@ namespace JanusRequest
         /// Sends a synchronous GET request with the specified request body and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous GET operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -57,6 +68,10 @@ namespace JanusRequest
         /// Sends a synchronous GET request with the specified request body to the given URL and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous GET operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -71,6 +86,10 @@ namespace JanusRequest
         /// Sends a synchronous POST request with the specified request body and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous POST operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -85,6 +104,10 @@ namespace JanusRequest
         /// Sends a synchronous POST request with the specified request body to the given URL and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous POST operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -99,6 +122,10 @@ namespace JanusRequest
         /// Sends a synchronous PUT request with the specified request body and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous PUT operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -113,6 +140,10 @@ namespace JanusRequest
         /// Sends a synchronous PUT request with the specified request body to the given URL and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous PUT operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -127,6 +158,10 @@ namespace JanusRequest
         /// Sends a synchronous DELETE request with the specified request body and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous DELETE operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -141,6 +176,10 @@ namespace JanusRequest
         /// Sends a synchronous DELETE request with the specified request body to the given URL and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous DELETE operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -155,21 +194,10 @@ namespace JanusRequest
         /// Sends a synchronous PATCH request with the specified request body and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous PATCH operation to complete.
         /// </summary>
-        /// <typeparam name="TResponse">The type of the expected response.</typeparam>
-        /// <param name="client">The HttpApiClient instance to extend.</param>
-        /// <param name="body">The request body object implementing IRequestResponse.</param>
-        /// <param name="info">Additional request information. Can be null.</param>
-        /// <returns>A RestApiResponse containing the deserialized response data.</returns>
-        [Obsolete("Use Patch instead. This method was incorrectly named and will be removed in version 1.0.4.")]
-        public static RestApiResponse<TResponse> Path<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
-        {
-            return client.PatchAsync(body, info).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
-        /// Sends a synchronous PATCH request with the specified request body and returns a typed response.
-        /// This is a blocking operation that waits for the asynchronous PATCH operation to complete.
-        /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -184,6 +212,10 @@ namespace JanusRequest
         /// Sends a synchronous PATCH request with the specified request body to the given URL and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous PATCH operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -199,6 +231,10 @@ namespace JanusRequest
         /// Uses the HTTP method and path configured in the request body's attributes.
         /// This is a blocking operation that waits for the asynchronous operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object implementing IRequestResponse.</param>
@@ -213,6 +249,10 @@ namespace JanusRequest
         /// Sends a synchronous HTTP request and returns an untyped response.
         /// This is a blocking operation that waits for the asynchronous operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object. Can be null.</param>
         /// <param name="info">Additional request information. Can be null.</param>
@@ -226,6 +266,10 @@ namespace JanusRequest
         /// Sends a synchronous HTTP request and returns the raw HttpResponseMessage.
         /// This is a blocking operation that waits for the asynchronous operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="body">The request body object. Can be null.</param>
         /// <param name="info">Additional request information. Can be null.</param>
@@ -240,6 +284,10 @@ namespace JanusRequest
         /// No request body is sent with this method.
         /// This is a blocking operation that waits for the asynchronous operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="info">The request information including method, path, headers, and query parameters.</param>
@@ -253,6 +301,10 @@ namespace JanusRequest
         /// Sends a synchronous HTTP request with the specified method, request body, and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="httpMethod">The HTTP method to use (GET, POST, PUT, DELETE, PATCH, etc.).</param>
@@ -268,6 +320,10 @@ namespace JanusRequest
         /// Sends a synchronous HTTP request with the specified method, request body, and URL, and returns a typed response.
         /// This is a blocking operation that waits for the asynchronous operation to complete.
         /// </summary>
+        /// <remarks>
+        /// This method blocks the calling thread. It may deadlock in environments with a SynchronizationContext
+        /// (e.g., WPF, WinForms, legacy ASP.NET). Prefer the async counterpart when possible.
+        /// </remarks>
         /// <typeparam name="TResponse">The type of the expected response.</typeparam>
         /// <param name="client">The HttpApiClient instance to extend.</param>
         /// <param name="httpMethod">The HTTP method to use (GET, POST, PUT, DELETE, PATCH, etc.).</param>

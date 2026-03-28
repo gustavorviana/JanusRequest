@@ -17,7 +17,7 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
             var services = new ServiceCollection();
 
             services.AddJanusRequestClient(
-                settings => settings.DefaultContentType = HttpContentType.Xml)
+                settings => settings.DefaultMediaType = HttpContentType.Xml)
                 .ConfigureHttpClient((provider, httpClient) =>
                     httpClient.BaseAddress = new Uri("https://api.example.com"));
 
@@ -38,7 +38,7 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
             Assert.Same(settings, client.Settings);
             Assert.Same(settings, clientFromFactory.Settings);
 
-            Assert.Equal(HttpContentType.Xml, settings.DefaultContentType);
+            Assert.Equal(HttpContentType.Xml, settings.DefaultMediaType);
             Assert.Equal("https://api.example.com/", client.Url);
             Assert.Equal("https://api.example.com/", clientFromFactory.Url);
         }
@@ -109,7 +109,7 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
             var services = new ServiceCollection();
 
             services.AddJanusRequestClient(
-                configureSettings: settings => settings.DefaultContentType = HttpContentType.Xml);
+                configureSettings: settings => settings.DefaultMediaType = HttpContentType.Xml);
 
             var provider = services.BuildServiceProvider();
 
@@ -120,7 +120,7 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
             var clientFromFactory = factory.CreateClient();
 
             // Assert
-            Assert.Equal(HttpContentType.Xml, settings.DefaultContentType);
+            Assert.Equal(HttpContentType.Xml, settings.DefaultMediaType);
             Assert.Same(settings, client.Settings);
             Assert.Same(settings, clientFromFactory.Settings);
             Assert.Null(client.Url);
@@ -292,6 +292,59 @@ namespace JanusRequest.Extensions.DependencyInjection.Tests
             // Assert
             Assert.Equal(1, factoryRegistrations);
             Assert.Equal(1, loggerRegistrations);
+        }
+
+        [Fact]
+        public void CreateClient_WithNullName_AppliesDefaultConfigurator()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var configuratorApplied = false;
+
+            services.AddJanusRequestClient(settings => { })
+                .ConfigureHttpClient((provider, httpClient) =>
+                    httpClient.BaseAddress = new Uri("https://default.example.com"));
+
+            // Register a named client using the default client name via reflection
+            services.AddJanusRequestClient("JanusRequest.Default", (provider, client) =>
+            {
+                configuratorApplied = true;
+            });
+
+            var provider = services.BuildServiceProvider();
+            var factory = provider.GetRequiredService<IHttpApiClientFactory>();
+
+            // Act - pass null name, which should resolve to DefaultClientName
+            var client = factory.CreateClient(null!);
+
+            // Assert
+            Assert.True(configuratorApplied, "Configurator should have been applied for the default client name");
+        }
+
+        [Fact]
+        public void CreateClient_WithEmptyName_AppliesDefaultConfigurator()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var configuratorApplied = false;
+
+            services.AddJanusRequestClient(settings => { })
+                .ConfigureHttpClient((provider, httpClient) =>
+                    httpClient.BaseAddress = new Uri("https://default.example.com"));
+
+            services.AddJanusRequestClient("JanusRequest.Default", (provider, client) =>
+            {
+                configuratorApplied = true;
+            });
+
+            var provider = services.BuildServiceProvider();
+            var factory = provider.GetRequiredService<IHttpApiClientFactory>();
+
+            // Act - pass empty name, which should resolve to DefaultClientName
+            var client = factory.CreateClient("");
+
+            // Assert
+            Assert.True(configuratorApplied, "Configurator should have been applied for the default client name");
         }
 
         // Logging tests

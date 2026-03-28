@@ -75,6 +75,18 @@ namespace JanusRequest.Builders
         }
 
         /// <summary>
+        /// Creates a deep copy of the current UrlQueryBuilder instance.
+        /// </summary>
+        /// <returns>A new UrlQueryBuilder instance with the same parameters.</returns>
+        public UrlQueryBuilder Clone()
+        {
+            var clone = new UrlQueryBuilder(_settings);
+            foreach (var item in _items)
+                clone._items[item.Key] = item.Value;
+            return clone;
+        }
+
+        /// <summary>
         /// Sets a query parameter with the specified key and value.
         /// </summary>
         /// <param name="key">The parameter key.</param>

@@ -47,7 +47,7 @@ namespace JanusRequest.Json.Newtonsoft
             protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
             {
                 var property = base.CreateProperty(member, memberSerialization);
-                if (member.CustomAttributes.Any(x => DisalowedTypes.Contains(x.AttributeType)))
+                if (member.CustomAttributes.Any(x => DisallowedTypes.Contains(x.AttributeType)))
                     property.ShouldSerialize = _ => false;
                 return property;
             }

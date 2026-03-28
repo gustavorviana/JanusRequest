@@ -188,9 +188,9 @@ namespace JanusRequest.Builders
         {
             var collectionAttr = property.GetCustomAttribute<HeaderCollectionAttribute>();
             var headerAttrs = property.GetCustomAttributes<HeaderAttribute>()?.ToArray();
-            var hasHeaderCollection = headerAttrs != null && headerAttrs.Length > 0;
+            var hasHeaderAttributes = headerAttrs != null && headerAttrs.Length > 0;
 
-            if (collectionAttr != null && hasHeaderCollection)
+            if (collectionAttr != null && hasHeaderAttributes)
                 throw new InvalidOperationException(
                     $"Property '{property.Name}' cannot have both [Header] and [HeaderCollection] attributes.");
 
@@ -203,7 +203,7 @@ namespace JanusRequest.Builders
                 return true;
             }
 
-            if (!hasHeaderCollection)
+            if (!hasHeaderAttributes)
                 return false;
 
             foreach (var headerAttr in headerAttrs)
@@ -220,9 +220,9 @@ namespace JanusRequest.Builders
         {
             var cookieCollectionAttr = property.GetCustomAttribute<CookieCollectionAttribute>();
             var cookieAttrs = property.GetCustomAttributes<CookieAttribute>()?.ToArray();
-            var hasCookieCollection = cookieAttrs != null && cookieAttrs.Length > 0;
+            var hasCookieAttributes = cookieAttrs != null && cookieAttrs.Length > 0;
 
-            if (cookieCollectionAttr != null && hasCookieCollection)
+            if (cookieCollectionAttr != null && hasCookieAttributes)
                 throw new InvalidOperationException(
                     $"Property '{property.Name}' cannot have both [Cookie] and [CookieCollection] attributes.");
 
@@ -235,7 +235,7 @@ namespace JanusRequest.Builders
                 return true;
             }
 
-            if (!hasCookieCollection)
+            if (!hasCookieAttributes)
                 return false;
 
             foreach (var cookieAttr in cookieAttrs)

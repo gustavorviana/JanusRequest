@@ -49,15 +49,55 @@ namespace JanusRequest.HttpHandlers
 
         /// <summary>
         /// Resends the original HTTP request using the same client and cancellation token.
-        /// This method can be used to retry the failed request as part of a recovery strategy.
+        /// The request is cloned before sending because HttpRequestMessage is single-use.
         /// </summary>
         /// <returns>
-        /// A task that represents the asynchronous resend operation. 
+        /// A task that represents the asynchronous resend operation.
         /// The task result contains the HTTP response from the resent request.
         /// </returns>
         public async Task<HttpResponseMessage> ResendAsync()
         {
-            return await Client.SendAsync(Request, CancellationToken);
+            var clone = await CloneRequestAsync(Request);
+            return await Client.SendAsync(clone, CancellationToken);
+        }
+
+        /// <summary>
+        /// Creates a clone of an HTTP request message, including method, URI, headers, version, and content.
+        /// This is necessary because HttpRequestMessage cannot be sent more than once.
+        /// </summary>
+        /// <param name="original">The original request message to clone.</param>
+        /// <returns>A new HttpRequestMessage with the same properties as the original.</returns>
+        public static async Task<HttpRequestMessage> CloneRequestAsync(HttpRequestMessage original)
+        {
+            var clone = new HttpRequestMessage(original.Method, original.RequestUri)
+            {
+                Version = original.Version
+            };
+
+            if (original.Content != null)
+            {
+                var contentBytes = await original.Content.ReadAsByteArrayAsync();
+                clone.Content = new ByteArrayContent(contentBytes);
+
+                if (original.Content.Headers != null)
+                {
+                    foreach (var header in original.Content.Headers)
+                        clone.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
+            }
+
+            foreach (var header in original.Headers)
+                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+
+#if NET5_0_OR_GREATER
+            foreach (var option in original.Options)
+                clone.Options.Set(new HttpRequestOptionsKey<object>(option.Key), option.Value);
+#else
+            foreach (var prop in original.Properties)
+                clone.Properties[prop.Key] = prop.Value;
+#endif
+
+            return clone;
         }
     }
 }

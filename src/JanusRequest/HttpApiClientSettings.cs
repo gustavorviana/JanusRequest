@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
+using System.Threading;
 
 namespace JanusRequest
 {
@@ -62,8 +63,8 @@ namespace JanusRequest
         /// <exception cref="ArgumentNullException">Thrown when attempting to set a null value.</exception>
         public static HttpApiClientSettings Default
         {
-            get => _default;
-            set => _default = value ?? throw new ArgumentNullException(nameof(Default));
+            get => Volatile.Read(ref _default);
+            set => Volatile.Write(ref _default, value ?? throw new ArgumentNullException(nameof(Default)));
         }
 
         private string _defaultMediaType = HttpContentType.Json;
@@ -73,10 +74,7 @@ namespace JanusRequest
         /// This property is kept for backward compatibility and simply proxies
         /// to <see cref="DefaultMediaType"/>.
         /// </summary>
-        /// <remarks>
-        /// This property is obsolete. Use <see cref="DefaultMediaType"/> instead.
-        /// </remarks>
-        [Obsolete("Use " + nameof(DefaultMediaType) + " instead.")]
+        [Obsolete("Use " + nameof(DefaultMediaType) + " instead. This property will be removed in v3.")]
         public string DefaultContentType
         {
             get => DefaultMediaType;
@@ -181,7 +179,7 @@ namespace JanusRequest
 
         /// <summary>
         /// Deserializes a string content to the specified response type using the appropriate content translator.
-        /// Uses the content type specified in the type's ContentTypeAttribute, or the provided default, or the DefaultContentType.
+        /// Uses the content type specified in the type's ContentTypeAttribute, or the provided default, or the DefaultMediaType.
         /// </summary>
         /// <typeparam name="TResponse">The type to deserialize the content to.</typeparam>
         /// <param name="content">The string content to deserialize.</param>
@@ -218,7 +216,7 @@ namespace JanusRequest
                 }
             }
 
-            if (_contentTypeTranslator.TryGetValue(contentType ?? DefaultContentType, out var contentBuilder))
+            if (_contentTypeTranslator.TryGetValue(contentType ?? DefaultMediaType, out var contentBuilder))
             {
                 content = contentBuilder.Parse(request);
                 return true;

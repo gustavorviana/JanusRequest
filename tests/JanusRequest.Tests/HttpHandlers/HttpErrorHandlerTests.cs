@@ -143,6 +143,38 @@ namespace JanusRequest.Tests.HttpHandlers
             Assert.Equal(0, throttlingException.RequestLimit);
         }
 
+        [Fact]
+        public async Task MapExceptionAsync_WithNullContent_DoesNotThrow()
+        {
+            // Arrange
+            var response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+            {
+                Content = null!,
+                RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://api.example.com/test")
+            };
+
+            // Act
+            var result = await _handler.MapExceptionAsync(response);
+
+            // Assert
+            Assert.IsType<RequestException>(result);
+            var requestException = (RequestException)result;
+            Assert.Equal(HttpStatusCode.InternalServerError, requestException.StatusCode);
+        }
+
+        [Fact]
+        public async Task MapExceptionAsync_WithEmptyContent_ReturnsRequestExceptionWithEmptyMessage()
+        {
+            // Arrange
+            var response = CreateResponse(HttpStatusCode.BadRequest, "");
+
+            // Act
+            var result = await _handler.MapExceptionAsync(response);
+
+            // Assert
+            Assert.IsType<RequestException>(result);
+        }
+
         private static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, string content)
         {
             var response = new HttpResponseMessage(statusCode);

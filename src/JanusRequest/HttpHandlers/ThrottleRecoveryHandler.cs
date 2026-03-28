@@ -33,8 +33,9 @@ namespace JanusRequest.HttpHandlers
         public async Task<HttpResponseMessage> RecoverAsync(HttpRecoveryContext context)
         {
             var retryAfterSeconds = context.Response.GetRetryAfter();
+            context.Response.Dispose();
             await Task.Delay(TimeSpan.FromSeconds(retryAfterSeconds), context.CancellationToken);
-            return await context.Client.SendAsync(context.Request, context.CancellationToken);
+            return await context.ResendAsync();
         }
     }
 }

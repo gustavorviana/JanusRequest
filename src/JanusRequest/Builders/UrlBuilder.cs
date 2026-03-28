@@ -52,7 +52,7 @@ namespace JanusRequest.Builders
                 var value = _settings.ContentToString(tree.GetValue(parameters, placeholder.FullName));
                 builder
                     .Remove(placeholder.Index, placeholder.Length + 2)
-                    .Insert(placeholder.Index, value ?? "Null");
+                    .Insert(placeholder.Index, value ?? throw new ArgumentNullException(placeholder.FullName, $"URL path placeholder \"{{{placeholder.FullName}}}\" resolved to null."));
             }
 
             return builder.ToString();

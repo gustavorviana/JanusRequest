@@ -25,14 +25,15 @@ namespace JanusRequest.Tests
         [ResponseDeserializer(typeof(TestDeserializer))]
         public class PlainTypeWithAttribute { }
 
-        // A request type that implements IRequestResponse<TResponse, TDeserializer>
-        public class RequestWithDeserializer : IRequestResponse<TestResponse, TestDeserializer> { }
+        // A request type with a ResponseDeserializer attribute
+        [ResponseDeserializer(typeof(TestDeserializer))]
+        public class RequestWithDeserializer : IRequestResponse<TestResponse> { }
 
-        // A type that does NOT implement IRequestResponse<,>
+        // A type that does NOT have a ResponseDeserializer attribute
         public class PlainType { }
 
         [Fact]
-        public void GetDeserializerType_WithIRequestResponse_ReturnsDeserializerType()
+        public void GetDeserializerType_WithResponseDeserializerAttribute_OnRequest_ReturnsDeserializerType()
         {
             // Act
             var result = _settings.GetDeserializerType(typeof(RequestWithDeserializer));
@@ -52,7 +53,7 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
-        public void GetDeserializerType_WithAttributeAndWithoutIRequestResponse_ReturnsDeserializerType()
+        public void GetDeserializerType_WithAttribute_ReturnsDeserializerType()
         {
             // Act
             var result = _settings.GetDeserializerType(typeof(PlainTypeWithAttribute));
@@ -62,7 +63,7 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
-        public void GetDeserializerType_WithoutIRequestResponseOrAttribute_ReturnsNull()
+        public void GetDeserializerType_WithoutAttribute_ReturnsNull()
         {
             // Act
             var result = _settings.GetDeserializerType(typeof(PlainType));
@@ -155,7 +156,8 @@ namespace JanusRequest.Tests
             public Task<TestResponse2> DeserializeAsync(HttpResponseMessage response, HttpApiClientSettings settings)
                 => Task.FromResult(new TestResponse2());
         }
-        public class RequestWithDeserializer2 : IRequestResponse<TestResponse2, TestDeserializer2> { }
+        [ResponseDeserializer(typeof(TestDeserializer2))]
+        public class RequestWithDeserializer2 : IRequestResponse<TestResponse2> { }
 
         [ResponseDeserializer(typeof(TestDeserializer2))]
         public class ResponseWithAttribute2 { }
@@ -166,7 +168,8 @@ namespace JanusRequest.Tests
             public Task<TestResponse3> DeserializeAsync(HttpResponseMessage response, HttpApiClientSettings settings)
                 => Task.FromResult(new TestResponse3());
         }
-        public class RequestWithDeserializer3 : IRequestResponse<TestResponse3, TestDeserializer3> { }
+        [ResponseDeserializer(typeof(TestDeserializer3))]
+        public class RequestWithDeserializer3 : IRequestResponse<TestResponse3> { }
 
         [Fact]
         public async Task ConcurrentAccess_SameType_NoExceptionsAndCorrectResultAsync()

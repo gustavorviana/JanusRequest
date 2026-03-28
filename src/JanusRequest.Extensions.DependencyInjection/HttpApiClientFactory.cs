@@ -14,15 +14,15 @@ namespace JanusRequest.Extensions.DependencyInjection
         private readonly IServiceProvider _serviceProvider;
         private readonly HttpApiClientSettings _settings;
         private readonly IHttpApiClientLogger _logger;
+        private readonly HttpApiClientConfiguratorRegistry _configuratorRegistry;
 
-        public HttpApiClientConfiguratorRegistry ConfiguratorRegistry { get; set; }
-
-        public HttpApiClientFactory(IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory, HttpApiClientSettings settings, IHttpApiClientLogger logger)
+        public HttpApiClientFactory(IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory, HttpApiClientSettings settings, IHttpApiClientLogger logger, HttpApiClientConfiguratorRegistry configuratorRegistry = null)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuratorRegistry = configuratorRegistry;
         }
 
         public HttpApiClient CreateClient()
@@ -42,7 +42,7 @@ namespace JanusRequest.Extensions.DependencyInjection
             };
 
 
-            ConfiguratorRegistry?.Get(name)?.Invoke(_serviceProvider, httpApiClient);
+            _configuratorRegistry?.Get(effectiveName)?.Invoke(_serviceProvider, httpApiClient);
 
             return httpApiClient;
         }

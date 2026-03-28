@@ -106,17 +106,14 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
-        public void Build_WithNullPropertyValue_ShouldReplaceWithNullString()
+        public void Build_WithNullPropertyValue_ShouldThrowArgumentNullException()
         {
             // Arrange
             var urlBuilder = new UrlBuilder("api/users/{id}");
             var parameters = new { id = (object)null! };
 
-            // Act
-            var result = urlBuilder.Build(parameters);
-
-            // Assert
-            Assert.Equal("api/users/Null", result);
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => urlBuilder.Build(parameters));
         }
 
         [Fact]
@@ -160,17 +157,14 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
-        public void Build_WithNullNestedProperty_ShouldReplaceWithNullString()
+        public void Build_WithNullNestedProperty_ShouldThrowArgumentNullException()
         {
             // Arrange
             var urlBuilder = new UrlBuilder("api/users/{user.id}");
             var parameters = new { user = (object)null };
 
-            // Act
-            var result = urlBuilder.Build(parameters);
-
-            // Assert
-            Assert.Equal("api/users/Null", result);
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => urlBuilder.Build(parameters));
         }
 
         [Fact]
@@ -258,17 +252,14 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
-        public void Build_WithMethodReturningNull_ShouldReplaceWithNullString()
+        public void Build_WithMethodReturningNull_ShouldThrowArgumentNullException()
         {
             // Arrange
             var urlBuilder = new UrlBuilder("api/users/{GetNullValue()}");
             var parameters = new TestClassWithMethod();
 
-            // Act
-            var result = urlBuilder.Build(parameters);
-
-            // Assert
-            Assert.Equal("api/users/Null", result);
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => urlBuilder.Build(parameters));
         }
 
         [Fact]
@@ -298,17 +289,14 @@ namespace JanusRequest.Tests
         }
 
         [Fact]
-        public void Build_WithMethodOnNullObject_ShouldReplaceWithNullString()
+        public void Build_WithMethodOnNullObject_ShouldThrowArgumentNullException()
         {
             // Arrange
             var urlBuilder = new UrlBuilder("api/users/{user.GetId()}");
             var parameters = new { user = (TestClassWithMethod)null };
 
-            // Act
-            var result = urlBuilder.Build(parameters);
-
-            // Assert
-            Assert.Equal("api/users/Null", result);
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => urlBuilder.Build(parameters));
         }
 
         // Classes auxiliares para os testes

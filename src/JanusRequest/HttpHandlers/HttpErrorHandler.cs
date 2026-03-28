@@ -41,7 +41,11 @@ namespace JanusRequest.HttpHandlers
 
             var headers = Utils.ExtractHeaders(response);
 
-            return new RequestException(response.StatusCode, await response.Content.ReadAsStringAsync(), headers)
+            var body = response.Content != null
+                ? await response.Content.ReadAsStringAsync()
+                : null;
+
+            return new RequestException(response.StatusCode, body, headers)
             {
                 Url = response.RequestMessage?.RequestUri?.ToString()
             };

@@ -44,27 +44,27 @@ namespace JanusRequest
         /// <summary>
         /// Sets basic authentication using username and password.
         /// </summary>
-        HttpApiClient SetBasicAuthentication(string username, string password);
+        IHttpApiClient SetBasicAuthentication(string username, string password);
 
         /// <summary>
         /// Sets bearer token authentication.
         /// </summary>
-        HttpApiClient SetBearerAuthentication(string token);
+        IHttpApiClient SetBearerAuthentication(string token);
 
         /// <summary>
         /// Sets API key authentication using a custom header.
         /// </summary>
-        HttpApiClient SetApiKeyAuthentication(string apiKey, string headerName = "X-API-Key");
+        IHttpApiClient SetApiKeyAuthentication(string apiKey, string headerName = "X-API-Key");
 
         /// <summary>
         /// Sets custom authentication with the specified scheme and value.
         /// </summary>
-        HttpApiClient SetAuthentication(string scheme, string value);
+        IHttpApiClient SetAuthentication(string scheme, string value);
 
         /// <summary>
         /// Clears any existing authentication configuration.
         /// </summary>
-        HttpApiClient ClearAuthentication();
+        IHttpApiClient ClearAuthentication();
 
         #endregion
 

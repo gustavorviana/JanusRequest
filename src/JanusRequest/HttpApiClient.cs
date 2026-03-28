@@ -104,7 +104,7 @@ namespace JanusRequest
         /// <param name="username">The username for authentication.</param>
         /// <param name="password">The password for authentication.</param>
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
-        public HttpApiClient SetBasicAuthentication(string username, string password)
+        public IHttpApiClient SetBasicAuthentication(string username, string password)
         {
             SetAuthentication("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}")));
             return this;
@@ -115,7 +115,7 @@ namespace JanusRequest
         /// </summary>
         /// <param name="token">The bearer token for authentication.</param>
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
-        public HttpApiClient SetBearerAuthentication(string token)
+        public IHttpApiClient SetBearerAuthentication(string token)
         {
             return SetAuthentication("Bearer", token);
         }
@@ -126,7 +126,7 @@ namespace JanusRequest
         /// <param name="apiKey">The API key value.</param>
         /// <param name="headerName">The header name for the API key. Defaults to "X-API-Key".</param>
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
-        public HttpApiClient SetApiKeyAuthentication(string apiKey, string headerName = "X-API-Key")
+        public IHttpApiClient SetApiKeyAuthentication(string apiKey, string headerName = "X-API-Key")
         {
             _httpClient.DefaultRequestHeaders.Remove(headerName);
             _httpClient.DefaultRequestHeaders.Add(headerName, apiKey);
@@ -139,7 +139,7 @@ namespace JanusRequest
         /// <param name="scheme">The authentication scheme (e.g., "Basic", "Bearer").</param>
         /// <param name="value">The authentication value.</param>
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
-        public HttpApiClient SetAuthentication(string scheme, string value)
+        public IHttpApiClient SetAuthentication(string scheme, string value)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(scheme, value);
             return this;
@@ -149,7 +149,7 @@ namespace JanusRequest
         /// Clears any existing authentication configuration.
         /// </summary>
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
-        public HttpApiClient ClearAuthentication()
+        public IHttpApiClient ClearAuthentication()
         {
             _httpClient.DefaultRequestHeaders.Authorization = null;
             return this;
@@ -375,6 +375,8 @@ namespace JanusRequest
                 if (response.StatusCode == HttpStatusCode.NoContent)
                     return new RestApiResponse<TResponse>(response, default);
 
+                await response.Content.LoadIntoBufferAsync();
+
                 var deserializer = GetDeserializer<TResponse>(body.GetType(), typeof(TResponse));
                 if (deserializer != null)
                 {
@@ -392,7 +394,7 @@ namespace JanusRequest
                 var content = await response.Content.ReadAsStringAsync();
                 try
                 {
-                    return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content, Settings.DefaultContentType));
+                    return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content, Settings.DefaultMediaType));
                 }
                 catch (Exception ex) when (!(ex is RequestException))
                 {
@@ -418,6 +420,8 @@ namespace JanusRequest
 
                 if (!response.IsSuccessStatusCode)
                     return new RestApiResponse<TResponse>(response, default);
+
+                await response.Content.LoadIntoBufferAsync();
 
                 var deserializer = GetDeserializer<TResponse>(typeof(TResponse), typeof(TResponse));
                 if (deserializer != null)
@@ -471,7 +475,15 @@ namespace JanusRequest
         {
             ValidateBody(body);
             var requestMessage = CreateHttpRequestMessage(ConfigureRequest(info, body), body);
-            return await SendRequestAsync(requestMessage, cancellationToken);
+            try
+            {
+                return await SendRequestAsync(requestMessage, cancellationToken);
+            }
+            catch
+            {
+                requestMessage.Dispose();
+                throw;
+            }
         }
 
         private void ValidateBody(object body)
@@ -489,7 +501,7 @@ namespace JanusRequest
         /// </summary>
         /// <param name="responseType">The type to get the deserializer for.</param>
         /// <returns>The deserializer type if found, null otherwise.</returns>
-        [Obsolete("Use HttpApiClientSettings.GetDeserializerType or GetDeserializerTypeFromResponse instead.")]
+        [Obsolete("Use HttpApiClientSettings.GetDeserializerType instead. This method will be removed in v3.")]
         public static Type GetDeserializerType(Type responseType)
         {
             var interfaceType = responseType.GetInterfaces()

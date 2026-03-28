@@ -50,20 +50,24 @@ namespace JanusRequest
         public CookieCollection Cookies { get; set; } = new CookieCollection();
 
         /// <summary>
-        /// Creates a shallow copy of the current HttpRequestInfo instance with an optional method override.
-        /// All collections (Query, Headers, Cookies) are referenced, not deep copied.
+        /// Creates a deep copy of the current HttpRequestInfo instance with an optional method override.
         /// </summary>
         /// <param name="method">The HTTP method to use in the clone. If null, uses the current Method value.</param>
         /// <returns>A new HttpRequestInfo instance with the same configuration as the current instance.</returns>
         public HttpRequestInfo Clone(string method = null)
         {
+            var cookies = new CookieCollection();
+            foreach (Cookie cookie in Cookies)
+                cookies.Add(cookie);
+
             return new HttpRequestInfo
             {
+                AllowNonStandardBody = AllowNonStandardBody,
                 Method = method ?? Method,
                 Path = Path,
-                Query = Query,
-                Headers = Headers,
-                Cookies = Cookies
+                Query = Query?.Clone(),
+                Headers = new NameValueCollection(Headers),
+                Cookies = cookies
             };
         }
 

@@ -195,9 +195,9 @@ namespace JanusRequest.Tests
 
             Assert.Equal("POST", clone.Method);
             Assert.Equal("/api/test", clone.Path);
-            Assert.Same(query, clone.Query);
-            Assert.Same(headers, clone.Headers);
-            Assert.Same(cookies, clone.Cookies);
+            Assert.NotSame(query, clone.Query);
+            Assert.NotSame(headers, clone.Headers);
+            Assert.NotSame(cookies, clone.Cookies);
         }
 
         [Fact]
