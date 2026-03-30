@@ -6,6 +6,8 @@
 
 A typed HTTP client library for .NET with attribute-based routing, automatic serialization, fluent authentication, and built-in error recovery. Supports both sync and async APIs across .NET Framework 4.5+ and modern .NET.
 
+> **⚠️ Upgrading from v1.x?** This version contains breaking changes. See the [Migration Guide: v1.x → v2.x](https://github.com/gustavorviana/JanusRequest/wiki/Migration-Guide:-v1.x-%E2%86%92-v2.x) before updating.
+
 ---
 
 ## Table of Contents
