@@ -81,7 +81,7 @@ namespace JanusRequest
         public static bool IsNumberWithoutDecimal(Type type)
         {
             return type == typeof(int) || type == typeof(long) || type == typeof(byte) || type == typeof(sbyte)
-            || type == typeof(short) || type == typeof(ushort) || type == typeof(uint) || type == typeof(long)
+            || type == typeof(short) || type == typeof(ushort) || type == typeof(uint)
             || type == typeof(ulong);
         }
 

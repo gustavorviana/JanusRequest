@@ -58,6 +58,9 @@ namespace JanusRequest.Builders
         /// <returns>The current UrlQueryBuilder instance for method chaining.</returns>
         public UrlQueryBuilder AddAll(UrlQueryBuilder query)
         {
+            if (query == null)
+                return this;
+
             return AddRange(query._items);
         }
 
@@ -158,12 +161,12 @@ namespace JanusRequest.Builders
             var builder = new StringBuilder();
             foreach (var item in enumerable)
             {
-                if (hasValue)
-                    builder.Append(',');
-
                 var strVal = _settings.ContentToString(item);
                 if (string.IsNullOrEmpty(strVal))
                     continue;
+
+                if (hasValue)
+                    builder.Append(',');
 
                 builder.Append(strVal);
                 hasValue = true;
@@ -179,10 +182,10 @@ namespace JanusRequest.Builders
                 if (!enumerator.MoveNext())
                     return;
 
-                builder.AppendFormat("?{0}={1}", enumerator.Current.Key, HttpUtility.UrlEncode(enumerator.Current.Value));
+                builder.AppendFormat("?{0}={1}", HttpUtility.UrlEncode(enumerator.Current.Key), HttpUtility.UrlEncode(enumerator.Current.Value));
 
                 while (enumerator.MoveNext())
-                    builder.AppendFormat("&{0}={1}", enumerator.Current.Key, HttpUtility.UrlEncode(enumerator.Current.Value));
+                    builder.AppendFormat("&{0}={1}", HttpUtility.UrlEncode(enumerator.Current.Key), HttpUtility.UrlEncode(enumerator.Current.Value));
             }
         }
 

@@ -90,7 +90,7 @@ namespace JanusRequest.Nodes
                     yield break;
                 }
 
-                if (!namer.CanEnter(_property))
+                if (owner == null || !namer.CanEnter(_property))
                     yield break;
 
                 namer.OnEnter(_property);

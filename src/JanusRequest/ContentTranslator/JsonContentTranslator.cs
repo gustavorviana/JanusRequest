@@ -23,6 +23,18 @@ namespace JanusRequest.ContentTranslator
 #endif
     public class JsonContentTranslator : ContentTypeTranslator
     {
+#if NETSTANDARD2_0_OR_GREATER || NET472_OR_GREATER || NET5_0_OR_GREATER
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        {
+            TypeInfoResolver = new IgnoreRestApiAttributesResolver()
+        };
+#else
+        private static readonly Newtonsoft.Json.JsonSerializerSettings _jsonSettings =
+            new Newtonsoft.Json.JsonSerializerSettings
+            {
+                ContractResolver = new IgnoreRestApiAttributesContractResolver()
+            };
+#endif
         /// <summary>
         /// Gets the HTTP content type handled by this translator.
         /// </summary>
@@ -45,20 +57,9 @@ namespace JanusRequest.ContentTranslator
                 return "null";
 
 #if NETSTANDARD2_0_OR_GREATER || NET472_OR_GREATER || NET5_0_OR_GREATER
-            var type = content.GetType();
-            var options = new JsonSerializerOptions
-            {
-                TypeInfoResolver = new IgnoreRestApiAttributesResolver()
-            };
-
-            return JsonSerializer.Serialize(content, options);
+            return JsonSerializer.Serialize(content, _jsonOptions);
 #else
-            return Newtonsoft.Json.JsonConvert.SerializeObject(
-                content,
-                new Newtonsoft.Json.JsonSerializerSettings
-                {
-                    ContractResolver = new IgnoreRestApiAttributesContractResolver()
-                });
+            return Newtonsoft.Json.JsonConvert.SerializeObject(content, _jsonSettings);
 #endif
         }
 
@@ -69,17 +70,9 @@ namespace JanusRequest.ContentTranslator
                 return default;
 
 #if NETSTANDARD2_0_OR_GREATER || NET472_OR_GREATER || NET5_0_OR_GREATER
-            var options = new JsonSerializerOptions
-            {
-                TypeInfoResolver = new IgnoreRestApiAttributesResolver()
-            };
-            return System.Text.Json.JsonSerializer.Deserialize<T>(json, options);
+            return System.Text.Json.JsonSerializer.Deserialize<T>(json, _jsonOptions);
 #else
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json,
-                new Newtonsoft.Json.JsonSerializerSettings
-                {
-                    ContractResolver = new IgnoreRestApiAttributesContractResolver()
-                });
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json, _jsonSettings);
 #endif
         }
     }

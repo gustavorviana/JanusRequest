@@ -465,6 +465,54 @@ namespace JanusRequest.Tests
             Assert.Equal("https://api.example.com/users", result);
         }
 
+        [Fact]
+        public void AddAll_WithNull_ReturnsThis()
+        {
+            // Arrange
+            var urlQuery = new UrlQueryBuilder();
+            urlQuery.Set("key", "value");
+
+            // Act
+            var result = urlQuery.AddAll(null);
+
+            // Assert
+            Assert.Same(urlQuery, result);
+            Assert.Equal("?key=value", urlQuery.ToString());
+        }
+
+        [Fact]
+        public void Build_EncodesQueryKeys()
+        {
+            // Arrange
+            var urlQuery = new UrlQueryBuilder();
+
+            // Act
+            urlQuery.Set("my key", "value");
+            var result = urlQuery.ToString();
+
+            // Assert
+            Assert.Contains("my+key=value", result);
+        }
+
+        [Fact]
+        public void GetValue_CollectionWithNullItems_NoDoubleComma()
+        {
+            // Arrange
+            var urlQuery = new UrlQueryBuilder();
+            var obj = new TestObjectWithNullableList
+            {
+                Tags = new List<string> { "a", null, "b" }
+            };
+
+            // Act
+            urlQuery.Add(obj);
+            var result = urlQuery.ToString();
+
+            // Assert - commas are URL-encoded as %2c; double comma would be %2c%2c
+            Assert.DoesNotContain("%2c%2c", result);
+            Assert.Contains("a%2cb", result);
+        }
+
         // Helper classes for testing
         private class DeepNested
         {
@@ -498,6 +546,11 @@ namespace JanusRequest.Tests
             public int UserId { get; set; }
 
             public string? Email { get; set; }
+        }
+
+        private class TestObjectWithNullableList
+        {
+            public List<string?> Tags { get; set; } = new List<string?>();
         }
     }
 }

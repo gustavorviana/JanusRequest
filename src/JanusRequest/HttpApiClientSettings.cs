@@ -272,10 +272,10 @@ namespace JanusRequest
                 return dateTimeOffset.ToString(FormatProvider);
 
             if (value is DateTime dateTime)
-                return dateTime.ToString(DateTimeFormat);
+                return dateTime.ToString(DateTimeFormat, _formatProvider);
 
             if (value is TimeSpan time)
-                return time.ToString(TimeFormat);
+                return time.ToString(TimeFormat, _formatProvider);
 
             if (value is IConvertible convertible)
                 return convertible.ToString(_formatProvider);

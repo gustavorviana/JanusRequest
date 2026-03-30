@@ -74,30 +74,38 @@ namespace JanusRequest.HttpHandlers
                 Version = original.Version
             };
 
-            if (original.Content != null)
+            try
             {
-                var contentBytes = await original.Content.ReadAsByteArrayAsync();
-                clone.Content = new ByteArrayContent(contentBytes);
-
-                if (original.Content.Headers != null)
+                if (original.Content != null)
                 {
-                    foreach (var header in original.Content.Headers)
-                        clone.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
-                }
-            }
+                    var contentBytes = await original.Content.ReadAsByteArrayAsync();
+                    clone.Content = new ByteArrayContent(contentBytes);
 
-            foreach (var header in original.Headers)
-                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                    if (original.Content.Headers != null)
+                    {
+                        foreach (var header in original.Content.Headers)
+                            clone.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                    }
+                }
+
+                foreach (var header in original.Headers)
+                    clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
 
 #if NET5_0_OR_GREATER
-            foreach (var option in original.Options)
-                clone.Options.Set(new HttpRequestOptionsKey<object>(option.Key), option.Value);
+                foreach (var option in original.Options)
+                    clone.Options.Set(new HttpRequestOptionsKey<object>(option.Key), option.Value);
 #else
-            foreach (var prop in original.Properties)
-                clone.Properties[prop.Key] = prop.Value;
+                foreach (var prop in original.Properties)
+                    clone.Properties[prop.Key] = prop.Value;
 #endif
 
-            return clone;
+                return clone;
+            }
+            catch
+            {
+                clone.Dispose();
+                throw;
+            }
         }
     }
 }

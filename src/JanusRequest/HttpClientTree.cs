@@ -30,8 +30,6 @@ namespace JanusRequest
             foreach (var method in Type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
                 if (IsValidMethod(method))
                     Add(method);
-
-            var path = new List<string>();
         }
 
         private Node Add(MemberInfo member)

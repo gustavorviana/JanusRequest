@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -95,7 +96,7 @@ namespace JanusRequest
 
         private static Dictionary<string, IEnumerable<string>> ExtractHeaders(HttpResponseMessage response)
         {
-            var headers = new Dictionary<string, IEnumerable<string>>();
+            var headers = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
             foreach (var header in response.Headers)
                 headers[header.Key] = header.Value;
             if (response.Content?.Headers != null)

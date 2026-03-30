@@ -75,6 +75,9 @@ namespace JanusRequest.Extensions.DependencyInjection
         {
             if (exception is RequestException reqEx)
             {
+                if (reqEx.Headers == null)
+                    return string.Empty;
+
                 var exceptionHeaders = reqEx
                     .Headers
                     .Select(h => $"{h.Key}={string.Join(",", h.Value)}");

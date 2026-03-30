@@ -488,7 +488,10 @@ namespace JanusRequest
             var retryMessage = CreateHttpRequestMessage(configuredInfo, body);
             var shouldRetry = await authenticator.HandleUnauthorizedAsync(retryMessage, response, _httpClient);
             if (!shouldRetry)
+            {
+                retryMessage.Dispose();
                 return response;
+            }
 
             response.Dispose();
             return await InternalSendRequest(configuredInfo, retryMessage, cancellationToken);
@@ -529,7 +532,16 @@ namespace JanusRequest
         {
             var converterType = Settings.GetDeserializerType(requestType)
                              ?? Settings.GetDeserializerType(responseType);
-            return converterType == null ? null : Activator.CreateInstance(converterType) as IResponseDeserializer<TResponse>;
+
+            if (converterType == null)
+                return null;
+
+            var expectedType = typeof(IResponseDeserializer<TResponse>);
+            if (!expectedType.IsAssignableFrom(converterType))
+                throw new InvalidOperationException(
+                    $"Type '{converterType.FullName}' does not implement IResponseDeserializer<{typeof(TResponse).Name}>.");
+
+            return (IResponseDeserializer<TResponse>)Activator.CreateInstance(converterType);
         }
 
         protected async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -574,8 +586,9 @@ namespace JanusRequest
             if (Logger != null)
                 action(Logger);
 
-            foreach (var logger in Settings.Loggers)
-                action(logger);
+            var loggers = Settings.Loggers;
+            for (int i = 0; i < loggers.Count; i++)
+                action(loggers[i]);
         }
 
         private async Task<HttpResponseMessage> InternalSendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)

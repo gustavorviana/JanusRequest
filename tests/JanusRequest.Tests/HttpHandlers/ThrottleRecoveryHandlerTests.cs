@@ -131,5 +131,64 @@ namespace JanusRequest.Tests.HttpHandlers
             // Assert - should have waited at least ~1 second
             Assert.True(stopwatch.ElapsedMilliseconds >= 900, $"Expected at least 900ms delay, got {stopwatch.ElapsedMilliseconds}ms");
         }
+
+        [Fact]
+        public void MaxRetryAfterSeconds_DefaultsTo300()
+        {
+            // Arrange & Act
+            var handler = new ThrottleRecoveryHandler();
+
+            // Assert
+            Assert.Equal(300, handler.MaxRetryAfterSeconds);
+        }
+
+        [Fact]
+        public async Task RecoverAsync_RetryAfterExceedsMax_ThrowsThrottlingException()
+        {
+            // Arrange
+            var handler = new ThrottleRecoveryHandler { MaxRetryAfterSeconds = 5 };
+            var mockHandler = Substitute.For<HttpApiClientTestBase.MockHttpMessageHandler>();
+
+            mockHandler.OnSendedAsync(Arg.Any<HttpRequestMessage>(), Arg.Any<CancellationToken>())
+                .Returns(Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
+
+            var httpClient = new HttpClient(mockHandler);
+            var originalRequest = new HttpRequestMessage(HttpMethod.Get, "https://example.com/test");
+            var originalResponse = new HttpResponseMessage((HttpStatusCode)429);
+            originalResponse.Headers.Add("Retry-After", "10");
+
+            var context = new HttpRecoveryContext(httpClient, originalRequest, originalResponse, CancellationToken.None);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ThrottlingException>(() => handler.RecoverAsync(context));
+        }
+
+        [Fact]
+        public async Task RecoverAsync_RetryAfterWithinMax_RetriesSuccessfully()
+        {
+            // Arrange
+            var handler = new ThrottleRecoveryHandler { MaxRetryAfterSeconds = 10 };
+            var mockHandler = Substitute.For<HttpApiClientTestBase.MockHttpMessageHandler>();
+            var recoveredResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("success")
+            };
+
+            mockHandler.OnSendedAsync(Arg.Any<HttpRequestMessage>(), Arg.Any<CancellationToken>())
+                .Returns(Task.FromResult(recoveredResponse));
+
+            var httpClient = new HttpClient(mockHandler);
+            var originalRequest = new HttpRequestMessage(HttpMethod.Get, "https://example.com/test");
+            var originalResponse = new HttpResponseMessage((HttpStatusCode)429);
+            originalResponse.Headers.Add("Retry-After", "0");
+
+            var context = new HttpRecoveryContext(httpClient, originalRequest, originalResponse, CancellationToken.None);
+
+            // Act
+            var result = await handler.RecoverAsync(context);
+
+            // Assert
+            Assert.Same(recoveredResponse, result);
+        }
     }
 }

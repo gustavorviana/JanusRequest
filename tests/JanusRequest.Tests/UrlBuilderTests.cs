@@ -299,6 +299,45 @@ namespace JanusRequest.Tests
             Assert.Throws<ArgumentNullException>(() => urlBuilder.Build(parameters));
         }
 
+        [Fact]
+        public void Build_WithSpecialCharsInPathParam_ShouldUrlEncode()
+        {
+            // Arrange
+            var builder = new UrlBuilder("{name}");
+
+            // Act
+            var result = builder.Build(new { name = "hello world" });
+
+            // Assert
+            Assert.Equal("hello%20world", result);
+        }
+
+        [Fact]
+        public void Build_WithSlashInPathParam_ShouldUrlEncode()
+        {
+            // Arrange
+            var builder = new UrlBuilder("users/{id}");
+
+            // Act
+            var result = builder.Build(new { id = "a/b" });
+
+            // Assert
+            Assert.Equal("users/a%2Fb", result);
+        }
+
+        [Fact]
+        public void Build_WithAmpersandInPathParam_ShouldUrlEncode()
+        {
+            // Arrange
+            var builder = new UrlBuilder("search/{q}");
+
+            // Act
+            var result = builder.Build(new { q = "a&b" });
+
+            // Assert
+            Assert.Equal("search/a%26b", result);
+        }
+
         // Classes auxiliares para os testes
         public class TestClassWithMethod
         {

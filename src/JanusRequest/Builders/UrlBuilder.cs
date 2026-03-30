@@ -49,10 +49,12 @@ namespace JanusRequest.Builders
             for (int i = placeholders.Count - 1; i >= 0; i--)
             {
                 var placeholder = placeholders[i];
-                var value = _settings.ContentToString(tree.GetValue(parameters, placeholder.FullName));
+                var rawValue = _settings.ContentToString(tree.GetValue(parameters, placeholder.FullName))
+                    ?? throw new ArgumentNullException(placeholder.FullName, $"URL path placeholder \"{{{placeholder.FullName}}}\" resolved to null.");
+                var value = Uri.EscapeDataString(rawValue);
                 builder
                     .Remove(placeholder.Index, placeholder.Length + 2)
-                    .Insert(placeholder.Index, value ?? throw new ArgumentNullException(placeholder.FullName, $"URL path placeholder \"{{{placeholder.FullName}}}\" resolved to null."));
+                    .Insert(placeholder.Index, value);
             }
 
             return builder.ToString();

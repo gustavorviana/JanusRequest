@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -10,13 +11,22 @@ using System.Xml.Serialization;
 namespace JanusRequest.ContentTranslator
 {
     /// <summary>
-    /// Internal content translator for application/xml content type.
+    /// Content translator for application/xml content type.
     /// This translator uses XmlSerializer to serialize and deserialize objects to/from XML format.
     /// Properties marked with QueryArgAttribute or PathOnlyAttribute are excluded from XML serialization.
     /// </summary>
-    internal class XmlContentTranslator : ContentTypeTranslator
+    public class XmlContentTranslator : ContentTypeTranslator
     {
-        private readonly XmlWriterSettings _writerSettings = new XmlWriterSettings
+        private static readonly ConcurrentDictionary<Type, XmlSerializer> _serializerCache =
+            new ConcurrentDictionary<Type, XmlSerializer>();
+
+        private static readonly XmlReaderSettings _defaultReaderSettings = new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null
+        };
+
+        private static readonly XmlWriterSettings _defaultWriterSettings = new XmlWriterSettings
         {
             Encoding = Encoding.UTF8,
             Indent = true,
@@ -24,9 +34,40 @@ namespace JanusRequest.ContentTranslator
         };
 
         /// <summary>
+        /// Gets the settings used when reading XML during deserialization.
+        /// Defaults to DTD processing disabled and no XML resolver (prevents XXE attacks).
+        /// </summary>
+        public XmlReaderSettings ReaderSettings { get; }
+
+        /// <summary>
+        /// Gets the settings used when writing XML during serialization.
+        /// Defaults to UTF-8 encoding, indented output, and XML declaration included.
+        /// </summary>
+        public XmlWriterSettings WriterSettings { get; }
+
+        /// <summary>
         /// Gets the HTTP content type handled by this translator.
         /// </summary>
         public override string ContentType { get; } = HttpContentType.Xml;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="XmlContentTranslator"/> class with default settings.
+        /// DTD processing is disabled by default to prevent XXE attacks.
+        /// </summary>
+        public XmlContentTranslator() : this(null, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="XmlContentTranslator"/> class with custom settings.
+        /// </summary>
+        /// <param name="readerSettings">Custom XML reader settings for deserialization. If null, defaults are used (DTD processing disabled).</param>
+        /// <param name="writerSettings">Custom XML writer settings for serialization. If null, defaults are used (UTF-8, indented).</param>
+        public XmlContentTranslator(XmlReaderSettings readerSettings, XmlWriterSettings writerSettings = null)
+        {
+            ReaderSettings = readerSettings ?? _defaultReaderSettings;
+            WriterSettings = writerSettings ?? _defaultWriterSettings;
+        }
 
         /// <summary>
         /// Deserializes an XML string to the specified type.
@@ -40,10 +81,10 @@ namespace JanusRequest.ContentTranslator
             if (string.IsNullOrWhiteSpace(xml))
                 return default;
 
-            var overrides = CreateXmlAttributeOverrides(typeof(T));
-            var serializer = new XmlSerializer(typeof(T), overrides);
+            var serializer = GetOrCreateSerializer(typeof(T));
             using (var stringReader = new StringReader(xml))
-                return (T)serializer.Deserialize(stringReader);
+            using (var xmlReader = XmlReader.Create(stringReader, ReaderSettings))
+                return (T)serializer.Deserialize(xmlReader);
         }
 
         /// <summary>
@@ -69,7 +110,6 @@ namespace JanusRequest.ContentTranslator
         /// <summary>
         /// Serializes an object to its XML string representation.
         /// Properties marked with disallowed attributes are excluded from serialization.
-        /// Uses UTF-8 encoding with indentation and includes XML declaration.
         /// </summary>
         /// <param name="content">The object to serialize to XML. Can be null.</param>
         /// <returns>The XML string representation of the object, or null if content is null.</returns>
@@ -78,10 +118,9 @@ namespace JanusRequest.ContentTranslator
             if (content == null)
                 return null;
 
-            var overrides = CreateXmlAttributeOverrides(content.GetType());
-            var serializer = new XmlSerializer(content.GetType(), overrides);
+            var serializer = GetOrCreateSerializer(content.GetType());
             using (var stringWriter = new StringWriter())
-            using (var xmlWriter = XmlWriter.Create(stringWriter, _writerSettings))
+            using (var xmlWriter = XmlWriter.Create(stringWriter, WriterSettings))
             {
                 serializer.Serialize(xmlWriter, content);
                 return stringWriter.ToString();
@@ -89,13 +128,20 @@ namespace JanusRequest.ContentTranslator
         }
 
         /// <summary>
-        /// Creates XML attribute overrides to ignore properties marked with disallowed attributes.
-        /// This ensures that properties marked with QueryArgAttribute or PathOnlyAttribute
-        /// are not included in XML serialization/deserialization.
+        /// Clears the internal XmlSerializer cache. Useful for hot-reload or test isolation scenarios.
         /// </summary>
-        /// <param name="type">The type to create overrides for.</param>
-        /// <returns>An XmlAttributeOverrides instance configured to ignore properties with disallowed attributes.</returns>
-        private XmlAttributeOverrides CreateXmlAttributeOverrides(Type type)
+        public static void ClearSerializerCache()
+        {
+            _serializerCache.Clear();
+        }
+
+        private static XmlSerializer GetOrCreateSerializer(Type type)
+        {
+            return _serializerCache.GetOrAdd(type, t =>
+                new XmlSerializer(t, CreateXmlAttributeOverrides(t)));
+        }
+
+        private static XmlAttributeOverrides CreateXmlAttributeOverrides(Type type)
         {
             var overrides = new XmlAttributeOverrides();
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);

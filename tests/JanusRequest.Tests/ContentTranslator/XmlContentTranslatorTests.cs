@@ -269,6 +269,76 @@ namespace JanusRequest.Tests.ContentTranslator
             Assert.Contains("<Age>25</Age>", result);
         }
 
+        [Fact]
+        public void Deserialize_WithXxePayload_DoesNotResolveExternalEntity()
+        {
+            // Arrange
+            var xxeXml = "<?xml version=\"1.0\"?>" +
+                         "<!DOCTYPE foo [<!ENTITY xxe \"injected\">]>" +
+                         "<TestPerson><Name>&xxe;</Name></TestPerson>";
+
+            // Act & Assert
+            // XmlSerializer wraps the inner XmlException in an InvalidOperationException.
+            // The inner exception confirms DTD processing was blocked (XXE prevented).
+            var ex = Assert.Throws<InvalidOperationException>(() => _translator.Deserialize<TestPerson>(xxeXml));
+            Assert.IsType<System.Xml.XmlException>(ex.InnerException);
+            Assert.Contains("DTD", ex.InnerException.Message);
+        }
+
+        [Fact]
+        public void Constructor_WithCustomReaderSettings_UsesProvidedSettings()
+        {
+            // Arrange
+            var customReaderSettings = new System.Xml.XmlReaderSettings
+            {
+                DtdProcessing = System.Xml.DtdProcessing.Ignore
+            };
+
+            // Act
+            var translator = new XmlContentTranslator(customReaderSettings);
+
+            // Assert
+            Assert.Same(customReaderSettings, translator.ReaderSettings);
+        }
+
+        [Fact]
+        public void Constructor_WithNullSettings_UsesDefaults()
+        {
+            // Act
+            var translator = new XmlContentTranslator(null, null);
+
+            // Assert
+            Assert.Equal(System.Xml.DtdProcessing.Prohibit, translator.ReaderSettings.DtdProcessing);
+        }
+
+        [Fact]
+        public void ClearSerializerCache_DoesNotThrow()
+        {
+            // Arrange - populate the cache with at least one serializer
+            _translator.Serialize(new TestPerson { Name = "John", Age = 25 });
+
+            // Act & Assert
+            var exception = Record.Exception(() => XmlContentTranslator.ClearSerializerCache());
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public void Constructor_WithCustomWriterSettings_UsesProvidedSettings()
+        {
+            // Arrange
+            var customWriterSettings = new System.Xml.XmlWriterSettings
+            {
+                Indent = false,
+                OmitXmlDeclaration = true
+            };
+
+            // Act
+            var translator = new XmlContentTranslator(null, customWriterSettings);
+
+            // Assert
+            Assert.Same(customWriterSettings, translator.WriterSettings);
+        }
+
         // Helper method to extract string content
         private string GetStringContentValue(StringContent content)
         {

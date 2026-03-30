@@ -1,3 +1,4 @@
+using JanusRequest.Attributes;
 using System.Net;
 
 namespace JanusRequest.Tests
@@ -64,5 +65,27 @@ namespace JanusRequest.Tests
             Assert.Equal(2, items[1].Id);
             Assert.Equal("B", items[1].Name);
         }
+
+        [Fact]
+        public async Task SendAsync_WithDeserializerTypeThatDoesNotImplementInterface_ThrowsInvalidOperationExceptionAsync()
+        {
+            // Arrange — register a type that is NOT IResponseDeserializer<TestResponse>
+            _settings.AddDeserializer(typeof(WrongDeserializerRequest), typeof(NotADeserializer));
+            var request = new WrongDeserializerRequest();
+            SetupHttpResponse(HttpStatusCode.OK, "{\"Id\":1,\"Name\":\"Test\"}");
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _httpApiClient.SendAsync(request));
+
+            Assert.Contains("does not implement IResponseDeserializer", ex.Message);
+            Assert.Contains(nameof(TestResponse), ex.Message);
+        }
+
+        [Request("http://localhost/test")]
+        private class WrongDeserializerRequest : IRequestResponse<TestResponse> { }
+
+        // A class that does NOT implement IResponseDeserializer<TestResponse>
+        private class NotADeserializer { }
     }
 }
