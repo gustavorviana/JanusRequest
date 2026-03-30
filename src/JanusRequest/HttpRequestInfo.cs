@@ -1,0 +1,104 @@
+using JanusRequest.Builders;
+using System;
+using System.Collections.Specialized;
+using System.Net;
+
+namespace JanusRequest
+{
+    /// <summary>
+    /// Represents HTTP request information including method, path, query parameters, headers, and cookies.
+    /// This class encapsulates all the configuration needed to construct an HTTP request and provides
+    /// functionality to clone the information with optional method override.
+    /// </summary>
+    public class HttpRequestInfo
+    {
+        /// <summary>
+        /// Defines which HTTP methods that normally do not use a request body
+        /// are allowed to send one.
+        /// Default is <see cref="NonStandardBodyMethods.None"/>.
+        /// </summary>
+        public NonStandardBodyMethods AllowNonStandardBody { get; set; }
+            = NonStandardBodyMethods.None;
+
+        /// <summary>
+        /// Gets or sets the HTTP method for the request (GET, POST, PUT, DELETE, PATCH, etc.).
+        /// </summary>
+        public string Method { get; set; }
+
+        /// <summary>
+        /// Gets or sets the URL path for the request.
+        /// When the path starts with http:// or https://, it is treated as an absolute URL and the client base URL is ignored.
+        /// </summary>
+        public string Path { get; set; }
+
+        /// <summary>
+        /// Gets or sets the query parameters for the request.
+        /// Initialized with a new UrlQueryBuilder instance.
+        /// </summary>
+        public UrlQueryBuilder Query { get; set; } = new UrlQueryBuilder();
+
+        /// <summary>
+        /// Gets or sets the HTTP headers for the request.
+        /// Initialized with a new NameValueCollection instance.
+        /// </summary>
+        public NameValueCollection Headers { get; set; } = new NameValueCollection();
+
+        /// <summary>
+        /// Gets or sets the cookies for the request.
+        /// Initialized with a new CookieCollection instance.
+        /// </summary>
+        public CookieCollection Cookies { get; set; } = new CookieCollection();
+
+        /// <summary>
+        /// Gets or sets the per-request timeout. When set, overrides the global HttpClient.Timeout for this request.
+        /// If null, the global timeout is used.
+        /// </summary>
+        public TimeSpan? Timeout { get; set; }
+
+        /// <summary>
+        /// Gets or sets a per-request authenticator that overrides <see cref="HttpApiClientSettings.Authenticator"/>
+        /// for this specific request. When null, the settings-level authenticator (if any) is used.
+        /// </summary>
+        public IHttpAuthenticator Authenticator { get; set; }
+
+        /// <summary>
+        /// Creates a deep copy of the current HttpRequestInfo instance with an optional method override.
+        /// </summary>
+        /// <param name="method">The HTTP method to use in the clone. If null, uses the current Method value.</param>
+        /// <returns>A new HttpRequestInfo instance with the same configuration as the current instance.</returns>
+        public HttpRequestInfo Clone(string method = null)
+        {
+            var cookies = new CookieCollection();
+            foreach (Cookie cookie in Cookies)
+                cookies.Add(cookie);
+
+            return new HttpRequestInfo
+            {
+                AllowNonStandardBody = AllowNonStandardBody,
+                Method = method ?? Method,
+                Path = Path,
+                Query = Query?.Clone(),
+                Headers = new NameValueCollection(Headers),
+                Cookies = cookies,
+                Timeout = Timeout,
+                Authenticator = Authenticator
+            };
+        }
+
+        internal bool CanAddBody()
+        {
+            // HEAD and OPTIONS should never include a body
+            if (string.Equals(Method, "HEAD", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (string.Equals(Method, "GET", StringComparison.OrdinalIgnoreCase))
+                return AllowNonStandardBody.HasFlag(NonStandardBodyMethods.Get);
+
+            if (string.Equals(Method, "DELETE", StringComparison.OrdinalIgnoreCase))
+                return AllowNonStandardBody.HasFlag(NonStandardBodyMethods.Delete);
+
+            return true;
+        }
+    }
+}

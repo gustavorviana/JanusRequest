@@ -1,188 +1,82 @@
 # JanusRequest
 
-A complete HTTP API client library for .NET Framework 4.5+ and .NET 5+ with automatic serialization, error handling, failure recovery, and support for multiple content types. Provides a fluent interface for authentication, headers, and request parameters.
+[![NuGet](https://img.shields.io/nuget/v/JanusRequest.svg)](https://www.nuget.org/packages/JanusRequest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-net45%20%7C%20net472%20%7C%20netstandard2.0%20%7C%20net5%2B-512bd4)](https://dotnet.microsoft.com)
 
-## Features
+A typed HTTP client library for .NET with attribute-based routing, automatic serialization, fluent authentication, and built-in error recovery. Supports both sync and async APIs across .NET Framework 4.5+ and modern .NET.
 
-- **Fluent API Design**: Chain methods for easy configuration
-- **Multiple Content Types**: JSON, XML, Form Data, Form URL-Encoded
-- **Automatic Serialization/Deserialization**: Based on attributes and content types
-- **Error Handling**: Built-in error mapping and recovery mechanisms
-- **Authentication Support**: Basic, Bearer, API Key authentication
-- **Throttling Management**: Automatic retry with rate limiting support
-- **Attribute-Based Configuration**: Configure requests using attributes
-- **Sync & Async Support**: Both synchronous and asynchronous operations
+> **Upgrading from v1.x?** See the [Migration Guide](https://github.com/gustavorviana/JanusRequest/wiki/Migration-Guide-v1.x-to-v2.x) before updating.
+
+---
 
 ## Installation
 
-```bash
+```powershell
 Install-Package JanusRequest
 ```
 
-## Quick Start
+Optional packages:
 
-### Basic Usage
+```powershell
+Install-Package JanusRequest.Extensions.DependencyInjection   # IServiceCollection + IHttpClientFactory
+Install-Package JanusRequest.Json.Newtonsoft                   # Newtonsoft.Json on .NET 5+
+```
+
+---
+
+## Quick Start
 
 ```csharp
 using JanusRequest;
+using JanusRequest.Attributes;
 
-// Create client
-var client = new HttpApiClient("https://api.example.com");
-
-// Simple GET request
-var response = await client.SendAsync<UserResponse>(new HttpRequestInfo 
-{
-    Method = "GET",
-    Path = "/users/123"
-});
-
-Console.WriteLine($"User: {response.Data.Name}");
-```
-
-### Using Request Objects with Attributes
-
-```csharp
+// Define a typed request
 [Request("/users/{id}")]
 [ContentType(HttpContentType.Json)]
 public class GetUserRequest : IRequestResponse<UserResponse>
 {
     [PathOnly]
     public int Id { get; set; }
-    
-    [QueryArg("include")]
-    public string Include { get; set; }
 }
 
-// Usage
-var request = new GetUserRequest { Id = 123, Include = "profile" };
-var response = await client.GetAsync(request);
-```
-
-### POST Request with JSON Body
-
-```csharp
-[Request("/users", Method = "POST")]
-[ContentType(HttpContentType.Json)]
-public class CreateUserRequest : IRequestResponse<UserResponse>
+public class UserResponse
 {
+    public int Id { get; set; }
     public string Name { get; set; }
-    public string Email { get; set; }
-    
-    [QueryIgnore] // This won't be included in query parameters
-    public string Password { get; set; }
 }
 
-// Usage
-var request = new CreateUserRequest 
-{
-    Name = "John Doe",
-    Email = "john@example.com",
-    Password = "secret123"
-};
+// Send it
+using var client = new HttpApiClient("https://api.example.com");
 
-var response = await client.PostAsync(request);
+var response = await client.GetAsync(new GetUserRequest { Id = 42 });
+Console.WriteLine(response.Data.Name);
+
+// Or use a simple URL overload
+var response2 = await client.GetAsync<UserResponse>("/users/42");
 ```
 
-### Form Data Upload
+---
 
-```csharp
-[Request("/upload")]
-[ContentType(HttpContentType.FormData)]
-public class UploadRequest : IRequestResponse<UploadResponse>
-{
-    [FormData("file")]
-    public Stream FileStream { get; set; }
-    
-    [FormData("description")]
-    public string Description { get; set; }
-}
+## Features
 
-// Usage
-using var fileStream = File.OpenRead("document.pdf");
-var request = new UploadRequest 
-{
-    FileStream = fileStream,
-    Description = "Important document"
-};
+| Feature | Description | Wiki |
+|---|---|---|
+| **Request Models & Attributes** | `[Request]`, `[PathOnly]`, `[QueryArg]`, `[FormData]`, `[Header]`, `[Cookie]` and more | [Attributes](https://github.com/gustavorviana/JanusRequest/wiki/Attributes) / [Request Models](https://github.com/gustavorviana/JanusRequest/wiki/Request-Models) |
+| **All HTTP Verbs** | GET, POST, PUT, DELETE, PATCH + custom verbs, sync and async | [HttpApiClient Reference](https://github.com/gustavorviana/JanusRequest/wiki/HttpApiClient-&-IHttpApiClient-Reference) |
+| **Authentication** | Bearer, Basic, API Key, custom schemes, and `IHttpAuthenticator` | [Authentication](https://github.com/gustavorviana/JanusRequest/wiki/Authentication) / [IHttpAuthenticator](https://github.com/gustavorviana/JanusRequest/wiki/IHttpAuthenticator) |
+| **Error Handling** | `HttpErrorHandler`, `ThrottleRecoveryHandler`, `RequestException` | [Error Handling](https://github.com/gustavorviana/JanusRequest/wiki/ErrorHandling) |
+| **Custom Deserializers** | `IResponseDeserializer<T>`, `[ResponseDeserializer]` attribute | [Response Handlers](https://github.com/gustavorviana/JanusRequest/wiki/Response-Handlers) |
+| **Logging** | `IHttpApiClientLogger` with framework-agnostic lifecycle hooks | [Logging](https://github.com/gustavorviana/JanusRequest/wiki/Logging) |
+| **JSON Serialization** | `System.Text.Json` by default, Newtonsoft.Json opt-in | [Serialization](https://github.com/gustavorviana/JanusRequest/wiki/Serialization) |
+| **Dependency Injection** | Default and named clients via `IHttpClientFactory` | [Dependency Injection](https://github.com/gustavorviana/JanusRequest/wiki/Dependency-Injection) |
+| **Headers & Cookies** | Per-request headers/cookies via attributes or `HttpRequestInfo` | [Headers](https://github.com/gustavorviana/JanusRequest/wiki/Headers) |
+| **Advanced Scenarios** | Non-standard body methods, content types, query builder | [Advanced Examples](https://github.com/gustavorviana/JanusRequest/wiki/Advanced-Examples) |
 
-var response = await client.PostAsync(request);
-```
+For full documentation, visit the **[Wiki](https://github.com/gustavorviana/JanusRequest/wiki)**.
 
-## Authentication
+---
 
-### Bearer Token
+## License
 
-```csharp
-var client = new HttpApiClient("https://api.example.com")
-    .SetBearerAuthentication("your-jwt-token");
-```
-
-### Basic Authentication
-
-```csharp
-var client = new HttpApiClient("https://api.example.com")
-    .SetBasicAuthentication("username", "password");
-```
-
-### API Key
-
-```csharp
-var client = new HttpApiClient("https://api.example.com")
-    .SetApiKeyAuthentication("your-api-key", "X-API-Key");
-```
-
-## Error Handling
-
-```csharp
-try 
-{
-    var response = await client.GetAsync(request);
-}
-catch (RequestException ex)
-{
-    Console.WriteLine($"HTTP Error: {ex.StatusCode}");
-    Console.WriteLine($"Response: {ex.Response}");
-    Console.WriteLine($"URL: {ex.Url}");
-}
-catch (ThrottlingException ex)
-{
-    Console.WriteLine($"Rate limited. Retry after: {ex.RetryAfter} seconds");
-    Console.WriteLine($"Retry at: {ex.RetryAt}");
-}
-```
-
-## Custom Response Deserializers
-
-```csharp
-public class CustomDeserializer : IResponseDeserializer<CustomResponse>
-{
-    public async Task<CustomResponse> DeserializeAsync(HttpResponseMessage response, HttpApiClientSettings settings)
-    {
-        var content = await response.Content.ReadAsStringAsync();
-        // Custom deserialization logic
-        return JsonConvert.DeserializeObject<CustomResponse>(content);
-    }
-}
-
-[Request("/custom")]
-public class CustomRequest : IRequestResponse<CustomResponse, CustomDeserializer>
-{
-    public string Data { get; set; }
-}
-```
-
-## Configuration Settings
-
-```csharp
-var settings = new HttpApiClientSettings()
-    .SetHandlers(new ThrottleRecoveryHandler(), new HttpErrorHandler())
-    .SetContentBuilder(new JsonContentTranslator(), new XmlContentTranslator());
-
-settings.DefaultContentType = HttpContentType.Json;
-settings.DateTimeFormat = "yyyy-MM-dd HH:mm:ss";
-
-var client = new HttpApiClient("https://api.example.com")
-{
-    Settings = settings
-};
-```
+[MIT](LICENSE)

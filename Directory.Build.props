@@ -1,0 +1,13 @@
+<Project>
+
+  <PropertyGroup>
+    <PackageVersion>2.0.0</PackageVersion>
+    <Authors>Gustavo Viana</Authors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageProjectUrl>https://github.com/gustavorviana/JanusRequest</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/gustavorviana/JanusRequest</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>
