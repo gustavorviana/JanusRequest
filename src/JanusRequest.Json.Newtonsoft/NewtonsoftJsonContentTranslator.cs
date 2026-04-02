@@ -3,6 +3,7 @@ using JanusRequest.ContentTranslator;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using System.Text;
 
