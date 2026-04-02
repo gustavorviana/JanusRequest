@@ -1,4 +1,8 @@
 using System.Collections.Generic;
+#if NETSTANDARD2_0_OR_GREATER || NET472_OR_GREATER || NET5_0_OR_GREATER
+using System.Text.Json.Serialization;
+using JanusRequest.ContentTranslator.Converters;
+#endif
 
 namespace JanusRequest
 {
@@ -6,6 +10,9 @@ namespace JanusRequest
     /// Represents a problem details response following RFC 9457 (formerly RFC 7807).
     /// Provides a standardized way for HTTP APIs to communicate error information to clients.
     /// </summary>
+#if NETSTANDARD2_0_OR_GREATER || NET472_OR_GREATER || NET5_0_OR_GREATER
+    [JsonConverter(typeof(ProblemDetailsJsonConverter))]
+#endif
     public class ProblemDetails
     {
         /// <summary>
