@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 #if NETSTANDARD2_0_OR_GREATER || NET472_OR_GREATER || NET5_0_OR_GREATER
 using System.Text.Json.Serialization;
-using JanusRequest.ContentTranslator.Converters;
 #endif
+using JanusRequest.ContentTranslator.Converters;
 
 namespace JanusRequest
 {
@@ -12,6 +12,8 @@ namespace JanusRequest
     /// </summary>
 #if NETSTANDARD2_0_OR_GREATER || NET472_OR_GREATER || NET5_0_OR_GREATER
     [JsonConverter(typeof(ProblemDetailsJsonConverter))]
+#else
+    [Newtonsoft.Json.JsonConverter(typeof(ProblemDetailsNewtonsoftJsonConverter))]
 #endif
     public class ProblemDetails
     {

@@ -17,7 +17,8 @@ namespace JanusRequest.Json.Newtonsoft
     {
         private readonly JsonSerializerSettings _settings = new JsonSerializerSettings
         {
-            ContractResolver = new IgnoreRestApiAttributesContractResolver()
+            ContractResolver = new IgnoreRestApiAttributesContractResolver(),
+            Converters = { new ProblemDetailsNewtonsoftJsonConverter() }
         };
 
         public override string ContentType => HttpContentType.Json;
