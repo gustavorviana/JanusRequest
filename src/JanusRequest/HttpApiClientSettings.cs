@@ -113,6 +113,20 @@ namespace JanusRequest
         public bool LogResponseHeadersOnError { get; set; } = false;
 
         /// <summary>
+        /// Gets or sets whether the raw response body should be captured on error responses (4xx/5xx).
+        /// When enabled, <see cref="RestApiResponse.RawResponse"/> will contain the response body string.
+        /// Default is false to avoid unnecessary memory allocation.
+        /// </summary>
+        public bool CaptureRawResponse { get; set; }
+
+        /// <summary>
+        /// Gets or sets a custom deserializer for parsing error responses into <see cref="ProblemDetails"/>.
+        /// When null (default), the standard JSON deserializer is used.
+        /// Set this to handle non-JSON error formats or custom problem details parsing.
+        /// </summary>
+        public IProblemDeserializer ProblemDeserializer { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the HttpApiClientSettings class with default content translators.
         /// Sets up JSON, XML, form data, and form URL-encoded content translators.
         /// </summary>
