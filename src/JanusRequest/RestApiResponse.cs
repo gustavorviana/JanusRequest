@@ -49,6 +49,14 @@ namespace JanusRequest
         public string StatusDescription { get; }
 
         /// <summary>
+        /// Gets a value that indicates if the HTTP response was successful.
+        /// </summary>
+        public bool IsSuccessStatusCode
+        {
+            get => Status >= HttpStatusCode.OK && Status <= (HttpStatusCode)299;
+        }
+
+        /// <summary>
         /// Gets all HTTP headers from both the response and content headers as a dictionary.
         /// </summary>
         public Dictionary<string, IEnumerable<string>> Headers { get; }
@@ -79,6 +87,16 @@ namespace JanusRequest
             Headers = ExtractHeaders(response);
             RawResponse = rawResponse;
             Problem = problem;
+        }
+
+        /// <summary>
+        /// Throws an exception if the System.Net.Http.HttpResponseMessage.IsSuccessStatusCode property for the HTTP response is false.
+        /// </summary>
+        /// <exception cref="RequestException"></exception>
+        public void EnsureSuccessStatusCode()
+        {
+            if (!IsSuccessStatusCode)
+                throw new RequestException($"Response status code does not indicate success: {(int)Status} ({StatusDescription}).", Status);
         }
 
         /// <summary>

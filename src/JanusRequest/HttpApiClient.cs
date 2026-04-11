@@ -41,12 +41,13 @@ namespace JanusRequest
                 Authenticator = value.Authenticator;
             }
         }
+
         /// <summary>
         /// Gets or sets the authenticator applied to requests.
         /// When <c>null</c>, no authentication will be applied via an authenticator.
         /// </summary>
         public IHttpAuthenticator Authenticator { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the logger used to record HTTP requests, responses, and errors.
         /// When null, no logging is performed by this client.
@@ -543,7 +544,6 @@ namespace JanusRequest
         }
         #endregion
 
-
         private async Task<ErrorDetails> ExtractErrorDetailsAsync(HttpResponseMessage response)
         {
             if (response.IsSuccessStatusCode || response.Content == null)
@@ -592,7 +592,8 @@ namespace JanusRequest
         private IResponseDeserializer<TResponse> GetDeserializer<TResponse>(Type requestType, Type responseType)
         {
             var converterType = Settings.GetDeserializerType(requestType)
-                             ?? Settings.GetDeserializerType(responseType);
+                             ?? Settings.GetDeserializerType(responseType)
+                             ?? Settings.GetFallbackDeserializerType(responseType);
 
             if (converterType == null)
                 return null;
@@ -616,7 +617,7 @@ namespace JanusRequest
             HttpResponseMessage response;
             try
             {
-                response = await InternalSendRequestAsync(request, cancellationToken);
+                response = await SendRecoverableRequest(request, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -652,7 +653,7 @@ namespace JanusRequest
                 action(loggers[i]);
         }
 
-        private async Task<HttpResponseMessage> InternalSendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        private async Task<HttpResponseMessage> SendRecoverableRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (_disposed)
                 throw new ObjectDisposedException(GetType().FullName);
@@ -796,9 +797,7 @@ namespace JanusRequest
 
         private static TResponse EnsureSuccessAndGetData<TResponse>(RestApiResponse<TResponse> response)
         {
-            var statusCode = (int)response.Status;
-            if (statusCode < 200 || statusCode >= 300)
-                throw new RequestException(response.Status);
+            response.EnsureSuccessStatusCode();
             return response.Data;
         }
 
