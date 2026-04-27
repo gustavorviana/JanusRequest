@@ -27,6 +27,7 @@ namespace JanusRequest
         private static HttpApiClientSettings _default = new HttpApiClientSettings();
         private IHttpHandlerBase[] _handlers = new IHttpHandlerBase[0];
         private readonly List<IHttpApiClientLogger> _loggers = new List<IHttpApiClientLogger>();
+        private Type _fallbackDeserializerType;
 
         /// <summary>
         /// Global content translator overrides keyed by content type name.
@@ -111,6 +112,20 @@ namespace JanusRequest
         /// Default is false to avoid noisy logs and potential sensitive data exposure.
         /// </summary>
         public bool LogResponseHeadersOnError { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets whether the raw response body should be captured on error responses (4xx/5xx).
+        /// When enabled, <see cref="RestApiResponse.RawResponse"/> will contain the response body string.
+        /// Default is false to avoid unnecessary memory allocation.
+        /// </summary>
+        public bool CaptureRawResponse { get; set; }
+
+        /// <summary>
+        /// Gets or sets a custom deserializer for parsing error responses into <see cref="ProblemDetails"/>.
+        /// When null (default), the standard JSON deserializer is used.
+        /// Set this to handle non-JSON error formats or custom problem details parsing.
+        /// </summary>
+        public IProblemDeserializer ProblemDeserializer { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the HttpApiClientSettings class with default content translators.
@@ -361,6 +376,75 @@ namespace JanusRequest
         {
             _deserializerTypeCache.Clear();
             return this;
+        }
+
+        /// <summary>
+        /// Sets the fallback open-generic deserializer type used when no specific deserializer
+        /// is found for a response type via explicit registration, attribute, or interface.
+        /// The type must be an open generic with exactly one type parameter and must implement
+        /// <see cref="IResponseDeserializer{TResponse}"/> when closed over a response type.
+        /// Pass <see langword="null"/> to clear the fallback.
+        /// </summary>
+        /// <param name="openGenericType">
+        /// An open generic type definition such as <c>typeof(MyDeserializer&lt;&gt;)</c>, or <see langword="null"/> to remove the fallback.
+        /// </param>
+        /// <returns>The current <see cref="HttpApiClientSettings"/> instance for method chaining.</returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the type is not a generic type definition, does not have exactly one generic type parameter,
+        /// or does not implement <see cref="IResponseDeserializer{TResponse}"/>.
+        /// </exception>
+        public HttpApiClientSettings SetFallbackDeserializer(Type openGenericType)
+        {
+            if (openGenericType == null)
+            {
+                _fallbackDeserializerType = null;
+                return this;
+            }
+
+            if (!openGenericType.IsGenericTypeDefinition)
+                throw new ArgumentException(
+                    $"Type '{openGenericType.FullName}' must be an open generic type definition (e.g., typeof(MyDeserializer<>)).",
+                    nameof(openGenericType));
+
+            if (openGenericType.GetGenericArguments().Length != 1)
+                throw new ArgumentException(
+                    $"Type '{openGenericType.FullName}' must have exactly one generic type parameter.",
+                    nameof(openGenericType));
+
+            var hasDeserializerInterface = openGenericType.GetInterfaces()
+                .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IResponseDeserializer<>));
+
+            if (!hasDeserializerInterface)
+                throw new ArgumentException(
+                    $"Type '{openGenericType.FullName}' does not implement IResponseDeserializer<>.",
+                    nameof(openGenericType));
+
+            _fallbackDeserializerType = openGenericType;
+            return this;
+        }
+
+        /// <summary>
+        /// Attempts to resolve a closed deserializer type from the fallback open-generic deserializer
+        /// for the specified response type. Returns <see langword="null"/> if no fallback is configured
+        /// or if the open generic cannot be closed over the specified type.
+        /// </summary>
+        /// <param name="responseType">The response type to close the fallback generic over.</param>
+        /// <returns>The closed deserializer type, or <see langword="null"/>.</returns>
+        internal Type GetFallbackDeserializerType(Type responseType)
+        {
+            if (_fallbackDeserializerType == null)
+                return null;
+
+            try
+            {
+                var closedType = _fallbackDeserializerType.MakeGenericType(responseType);
+                _deserializerTypeCache[responseType] = closedType;
+                return closedType;
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
         }
 
         /// <summary>

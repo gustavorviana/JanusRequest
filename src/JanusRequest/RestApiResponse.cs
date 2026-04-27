@@ -24,7 +24,8 @@ namespace JanusRequest
         /// </summary>
         /// <param name="response">The HTTP response message containing status, headers, and metadata.</param>
         /// <param name="data">The deserialized response data of type TResponse.</param>
-        internal RestApiResponse(HttpResponseMessage response, TResponse data) : base(response)
+        internal RestApiResponse(HttpResponseMessage response, TResponse data, string rawResponse = null, ProblemDetails problem = null)
+            : base(response, rawResponse, problem)
         {
             Data = data;
         }
@@ -48,20 +49,54 @@ namespace JanusRequest
         public string StatusDescription { get; }
 
         /// <summary>
+        /// Gets a value that indicates if the HTTP response was successful.
+        /// </summary>
+        public bool IsSuccessStatusCode
+        {
+            get => Status >= HttpStatusCode.OK && Status <= (HttpStatusCode)299;
+        }
+
+        /// <summary>
         /// Gets all HTTP headers from both the response and content headers as a dictionary.
         /// </summary>
         public Dictionary<string, IEnumerable<string>> Headers { get; }
+
+        /// <summary>
+        /// Gets the raw response body string when the response is an error (4xx/5xx)
+        /// and <see cref="HttpApiClientSettings.CaptureRawResponse"/> is enabled. Otherwise null.
+        /// </summary>
+        public string RawResponse { get; }
+
+        /// <summary>
+        /// Gets the parsed <see cref="ProblemDetails"/> when the error response follows RFC 9457.
+        /// Null when the response is successful or the body is not a valid problem details document.
+        /// </summary>
+        public ProblemDetails Problem { get; }
 
         /// <summary>
         /// Initializes a new instance of the RestApiResponse class from an HTTP response message.
         /// Extracts status information and headers from both response and content headers.
         /// </summary>
         /// <param name="response">The HTTP response message to extract information from.</param>
-        internal RestApiResponse(HttpResponseMessage response)
+        /// <param name="rawResponse">The raw response body string, or null if not captured.</param>
+        /// <param name="problem">The parsed ProblemDetails, or null if not applicable.</param>
+        internal RestApiResponse(HttpResponseMessage response, string rawResponse = null, ProblemDetails problem = null)
         {
             Status = response.StatusCode;
             StatusDescription = response.ReasonPhrase ?? response.StatusCode.ToString();
             Headers = ExtractHeaders(response);
+            RawResponse = rawResponse;
+            Problem = problem;
+        }
+
+        /// <summary>
+        /// Throws an exception if the System.Net.Http.HttpResponseMessage.IsSuccessStatusCode property for the HTTP response is false.
+        /// </summary>
+        /// <exception cref="RequestException"></exception>
+        public void EnsureSuccessStatusCode()
+        {
+            if (!IsSuccessStatusCode)
+                throw new RequestException($"Response status code does not indicate success: {(int)Status} ({StatusDescription}).", Status);
         }
 
         /// <summary>

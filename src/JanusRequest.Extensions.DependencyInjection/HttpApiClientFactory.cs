@@ -41,7 +41,6 @@ namespace JanusRequest.Extensions.DependencyInjection
                 Logger = _logger
             };
 
-
             _configuratorRegistry?.Get(effectiveName)?.Invoke(_serviceProvider, httpApiClient);
 
             return httpApiClient;

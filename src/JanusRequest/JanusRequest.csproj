@@ -7,6 +7,7 @@
 		<PackageIcon>icon.png</PackageIcon>
 		<PackageId>JanusRequest</PackageId>
 		<Title>JanusRequest - HTTP API Client Library</Title>
+		<Description>Lightweight and extensible HTTP API client library for .NET with built-in JSON/XML serialization, attribute-driven headers and cookies, retry and throttle handling, and structured error responses.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Company />
 		<PackageReleaseNotes>

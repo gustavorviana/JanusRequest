@@ -26,7 +26,7 @@ namespace JanusRequest
         /// </summary>
         public const string JsonContentType = "application/json";
 
-        private HttpApiClientSettings _settings = HttpApiClientSettings.Default;
+        private HttpApiClientSettings _settings = null;
 
         /// <summary>
         /// Gets or sets the HTTP API client settings that control serialization, content types, and handlers.
@@ -35,8 +35,18 @@ namespace JanusRequest
         public HttpApiClientSettings Settings
         {
             get => _settings;
-            set => _settings = value ?? throw new ArgumentNullException(nameof(Settings));
+            set
+            {
+                _settings = value ?? throw new ArgumentNullException(nameof(Settings));
+                Authenticator = value.Authenticator;
+            }
         }
+
+        /// <summary>
+        /// Gets or sets the authenticator applied to requests.
+        /// When <c>null</c>, no authentication will be applied via an authenticator.
+        /// </summary>
+        public IHttpAuthenticator Authenticator { get; set; }
 
         /// <summary>
         /// Gets or sets the logger used to record HTTP requests, responses, and errors.
@@ -94,6 +104,7 @@ namespace JanusRequest
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _disposeHttpClient = disposeHttpClient;
             Url = httpClient.BaseAddress?.ToString();
+            Settings = HttpApiClientSettings.Default;
         }
 
         #region Authentication
@@ -106,7 +117,7 @@ namespace JanusRequest
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
         public IHttpApiClient SetBasicAuthentication(string username, string password)
         {
-            Settings.Authenticator = AuthorizationHeaderAuthenticator.Basic(username, password);
+            Authenticator = AuthorizationHeaderAuthenticator.Basic(username, password);
             return this;
         }
 
@@ -117,7 +128,7 @@ namespace JanusRequest
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
         public IHttpApiClient SetBearerAuthentication(string token)
         {
-            Settings.Authenticator = new AuthorizationHeaderAuthenticator("Bearer", token);
+            Authenticator = new AuthorizationHeaderAuthenticator("Bearer", token);
             return this;
         }
 
@@ -129,7 +140,7 @@ namespace JanusRequest
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
         public IHttpApiClient SetApiKeyAuthentication(string apiKey, string headerName = "X-API-Key")
         {
-            Settings.Authenticator = new ApiKeyAuthenticator(apiKey, headerName);
+            Authenticator = new ApiKeyAuthenticator(apiKey, headerName);
             return this;
         }
 
@@ -141,7 +152,7 @@ namespace JanusRequest
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
         public IHttpApiClient SetAuthentication(string scheme, string value)
         {
-            Settings.Authenticator = new AuthorizationHeaderAuthenticator(scheme, value);
+            Authenticator = new AuthorizationHeaderAuthenticator(scheme, value);
             return this;
         }
 
@@ -151,7 +162,7 @@ namespace JanusRequest
         /// <returns>The current HttpApiClient instance for method chaining.</returns>
         public IHttpApiClient ClearAuthentication()
         {
-            Settings.Authenticator = null;
+            Authenticator = null;
             return this;
         }
 
@@ -376,13 +387,14 @@ namespace JanusRequest
                     return new RestApiResponse<TResponse>(response, default);
 
                 await response.Content.LoadIntoBufferAsync();
+                var errorDetails = await ExtractErrorDetailsAsync(response);
 
                 var deserializer = GetDeserializer<TResponse>(body.GetType(), typeof(TResponse));
                 if (deserializer != null)
                 {
                     try
                     {
-                        return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings));
+                        return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings), errorDetails.RawResponse, errorDetails.Problem);
                     }
                     catch (Exception ex) when (!(ex is RequestException))
                     {
@@ -394,7 +406,7 @@ namespace JanusRequest
                 var content = await response.Content.ReadAsStringAsync();
                 try
                 {
-                    return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content, Settings.DefaultMediaType));
+                    return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content, Settings.DefaultMediaType), errorDetails.RawResponse, errorDetails.Problem);
                 }
                 catch (Exception ex) when (!(ex is RequestException))
                 {
@@ -418,10 +430,11 @@ namespace JanusRequest
                 if (response.StatusCode == HttpStatusCode.NoContent)
                     return new RestApiResponse<TResponse>(response, default);
 
-                if (!response.IsSuccessStatusCode)
-                    return new RestApiResponse<TResponse>(response, default);
-
                 await response.Content.LoadIntoBufferAsync();
+                var errorDetails = await ExtractErrorDetailsAsync(response);
+
+                if (!response.IsSuccessStatusCode)
+                    return new RestApiResponse<TResponse>(response, default, errorDetails.RawResponse, errorDetails.Problem);
 
                 var deserializer = GetDeserializer<TResponse>(typeof(TResponse), typeof(TResponse));
                 if (deserializer != null)
@@ -460,7 +473,11 @@ namespace JanusRequest
         public virtual async Task<RestApiResponse> SendRequestAsync(object body, HttpRequestInfo info = null, CancellationToken cancellationToken = default)
         {
             using (var response = await SendHttpRequestAsync(body, info, cancellationToken))
-                return new RestApiResponse(response);
+            {
+                await response.Content.LoadIntoBufferAsync();
+                var errorDetails = await ExtractErrorDetailsAsync(response);
+                return new RestApiResponse(response, errorDetails.RawResponse, errorDetails.Problem);
+            }
         }
 
         /// <summary>
@@ -475,7 +492,7 @@ namespace JanusRequest
         {
             ValidateBody(body);
             var configuredInfo = ConfigureRequest(info, body);
-            var authenticator = configuredInfo.Authenticator ?? Settings.Authenticator;
+            var authenticator = configuredInfo.Authenticator ?? Authenticator;
             var requestMessage = CreateHttpRequestMessage(configuredInfo, body);
 
             if (authenticator != null)
@@ -527,11 +544,56 @@ namespace JanusRequest
         }
         #endregion
 
+        private async Task<ErrorDetails> ExtractErrorDetailsAsync(HttpResponseMessage response)
+        {
+            if (response.IsSuccessStatusCode || response.Content == null)
+                return ErrorDetails.Empty;
+
+            var rawResponse = Settings.CaptureRawResponse
+                ? await response.Content.ReadAsStringAsync()
+                : null;
+
+            ProblemDetails problem = null;
+            try
+            {
+                if (Settings.ProblemDeserializer != null)
+                {
+                    problem = await Settings.ProblemDeserializer.DeserializeAsync(response, Settings);
+                }
+                else
+                {
+                    var content = rawResponse ?? await response.Content.ReadAsStringAsync();
+                    if (!string.IsNullOrWhiteSpace(content))
+                        problem = Settings.Deserialize<ProblemDetails>(content, HttpContentType.Json);
+                }
+            }
+            catch
+            {
+                // Not a valid ProblemDetails response — ignore silently
+            }
+
+            return new ErrorDetails(rawResponse, problem);
+        }
+
+        private sealed class ErrorDetails
+        {
+            public static readonly ErrorDetails Empty = new ErrorDetails(null, null);
+
+            public string RawResponse { get; }
+            public ProblemDetails Problem { get; }
+
+            public ErrorDetails(string rawResponse, ProblemDetails problem)
+            {
+                RawResponse = rawResponse;
+                Problem = problem;
+            }
+        }
 
         private IResponseDeserializer<TResponse> GetDeserializer<TResponse>(Type requestType, Type responseType)
         {
             var converterType = Settings.GetDeserializerType(requestType)
-                             ?? Settings.GetDeserializerType(responseType);
+                             ?? Settings.GetDeserializerType(responseType)
+                             ?? Settings.GetFallbackDeserializerType(responseType);
 
             if (converterType == null)
                 return null;
@@ -555,7 +617,7 @@ namespace JanusRequest
             HttpResponseMessage response;
             try
             {
-                response = await InternalSendRequestAsync(request, cancellationToken);
+                response = await SendRecoverableRequest(request, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -591,7 +653,7 @@ namespace JanusRequest
                 action(loggers[i]);
         }
 
-        private async Task<HttpResponseMessage> InternalSendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        private async Task<HttpResponseMessage> SendRecoverableRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (_disposed)
                 throw new ObjectDisposedException(GetType().FullName);
@@ -735,9 +797,7 @@ namespace JanusRequest
 
         private static TResponse EnsureSuccessAndGetData<TResponse>(RestApiResponse<TResponse> response)
         {
-            var statusCode = (int)response.Status;
-            if (statusCode < 200 || statusCode >= 300)
-                throw new RequestException(response.Status);
+            response.EnsureSuccessStatusCode();
             return response.Data;
         }
 

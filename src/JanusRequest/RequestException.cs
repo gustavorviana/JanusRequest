@@ -94,5 +94,13 @@ namespace JanusRequest
         public RequestException(string message) : base(message)
         {
         }
+
+        internal RequestException(string message, HttpStatusCode statusCode, string response = null, IReadOnlyDictionary<string, IReadOnlyList<string>> headers = null)
+            : base(message)
+        {
+            StatusCode = statusCode;
+            Response = response;
+            Headers = headers;
+        }
     }
 }

@@ -9,7 +9,8 @@ namespace JanusRequest.Tests
             _httpApiClient.SetBasicAuthentication("user", "password");
 
             // Assert
-            var auth = Assert.IsType<AuthorizationHeaderAuthenticator>(_httpApiClient.Settings.Authenticator);
+            Assert.Null(_httpApiClient.Settings.Authenticator);
+            var auth = Assert.IsType<AuthorizationHeaderAuthenticator>(_httpApiClient.Authenticator);
             Assert.Equal("Basic", auth.Scheme);
             Assert.Equal(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("user:password")), auth.Value);
         }
@@ -21,7 +22,8 @@ namespace JanusRequest.Tests
             _httpApiClient.SetBearerAuthentication("token123");
 
             // Assert
-            var auth = Assert.IsType<AuthorizationHeaderAuthenticator>(_httpApiClient.Settings.Authenticator);
+            Assert.Null(_httpApiClient.Settings.Authenticator);
+            var auth = Assert.IsType<AuthorizationHeaderAuthenticator>(_httpApiClient.Authenticator);
             Assert.Equal("Bearer", auth.Scheme);
             Assert.Equal("token123", auth.Value);
         }
@@ -33,7 +35,8 @@ namespace JanusRequest.Tests
             _httpApiClient.SetApiKeyAuthentication("key123", "X-Custom-Key");
 
             // Assert
-            var auth = Assert.IsType<ApiKeyAuthenticator>(_httpApiClient.Settings.Authenticator);
+            Assert.Null(_httpApiClient.Settings.Authenticator);
+            var auth = Assert.IsType<ApiKeyAuthenticator>(_httpApiClient.Authenticator);
             Assert.Equal("key123", auth.ApiKey);
             Assert.Equal("X-Custom-Key", auth.HeaderName);
         }
@@ -45,7 +48,8 @@ namespace JanusRequest.Tests
             _httpApiClient.SetApiKeyAuthentication("key123");
 
             // Assert
-            var auth = Assert.IsType<ApiKeyAuthenticator>(_httpApiClient.Settings.Authenticator);
+            Assert.Null(_httpApiClient.Settings.Authenticator);
+            var auth = Assert.IsType<ApiKeyAuthenticator>(_httpApiClient.Authenticator);
             Assert.Equal("key123", auth.ApiKey);
             Assert.Equal("X-API-Key", auth.HeaderName);
         }
@@ -70,7 +74,8 @@ namespace JanusRequest.Tests
             _httpApiClient.SetAuthentication("Custom", "custom-token");
 
             // Assert
-            var auth = Assert.IsType<AuthorizationHeaderAuthenticator>(_httpApiClient.Settings.Authenticator);
+            Assert.Null(_httpApiClient.Settings.Authenticator);
+            var auth = Assert.IsType<AuthorizationHeaderAuthenticator>(_httpApiClient.Authenticator);
             Assert.Equal("Custom", auth.Scheme);
             Assert.Equal("custom-token", auth.Value);
         }
@@ -82,6 +87,7 @@ namespace JanusRequest.Tests
             IHttpApiClient result = _httpApiClient.SetBasicAuthentication("user", "pass");
 
             // Assert
+            Assert.Null(_httpApiClient.Settings.Authenticator);
             Assert.IsAssignableFrom<IHttpApiClient>(result);
             Assert.Same(_httpApiClient, result);
         }
@@ -93,6 +99,7 @@ namespace JanusRequest.Tests
             IHttpApiClient result = _httpApiClient.SetBearerAuthentication("token");
 
             // Assert
+            Assert.Null(_httpApiClient.Settings.Authenticator);
             Assert.IsAssignableFrom<IHttpApiClient>(result);
             Assert.Same(_httpApiClient, result);
         }
@@ -104,6 +111,7 @@ namespace JanusRequest.Tests
             IHttpApiClient result = _httpApiClient.SetApiKeyAuthentication("key");
 
             // Assert
+            Assert.Null(_httpApiClient.Settings.Authenticator);
             Assert.IsAssignableFrom<IHttpApiClient>(result);
             Assert.Same(_httpApiClient, result);
         }
@@ -115,6 +123,7 @@ namespace JanusRequest.Tests
             IHttpApiClient result = _httpApiClient.SetAuthentication("Custom", "value");
 
             // Assert
+            Assert.Null(_httpApiClient.Settings.Authenticator);
             Assert.IsAssignableFrom<IHttpApiClient>(result);
             Assert.Same(_httpApiClient, result);
         }
@@ -126,6 +135,7 @@ namespace JanusRequest.Tests
             IHttpApiClient result = _httpApiClient.ClearAuthentication();
 
             // Assert
+            Assert.Null(_httpApiClient.Settings.Authenticator);
             Assert.IsAssignableFrom<IHttpApiClient>(result);
             Assert.Same(_httpApiClient, result);
         }
@@ -143,6 +153,7 @@ namespace JanusRequest.Tests
                 .SetApiKeyAuthentication("key", "X-Key");
 
             // Assert
+            Assert.Null(_httpApiClient.Settings.Authenticator);
             Assert.IsAssignableFrom<IHttpApiClient>(result);
         }
     }
