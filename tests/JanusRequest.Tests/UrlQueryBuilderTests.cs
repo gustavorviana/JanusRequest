@@ -82,7 +82,7 @@ namespace JanusRequest.Tests
             var result = urlQuery.ToString();
 
             // Assert
-            Assert.Equal("?date=2023-12-25+15%3a30%3a45", result);
+            Assert.Equal("?date=2023-12-25%2015%3A30%3A45", result);
         }
 
         [Fact]
@@ -112,7 +112,7 @@ namespace JanusRequest.Tests
             var result = urlQuery.ToString();
 
             // Assert
-            Assert.Equal("?search=hello+world+%26+test", result);
+            Assert.Equal("?search=hello%20world%20%26%20test", result);
         }
 
         [Fact]
@@ -328,7 +328,7 @@ namespace JanusRequest.Tests
             var result = urlQuery.ToString();
 
             // Assert
-            Assert.Equal("?Tags=tag1%2ctag2%2ctag3", result);
+            Assert.Equal("?Tags=tag1%2Ctag2%2Ctag3", result);
         }
 
         [Fact]
@@ -491,7 +491,7 @@ namespace JanusRequest.Tests
             var result = urlQuery.ToString();
 
             // Assert
-            Assert.Contains("my+key=value", result);
+            Assert.Contains("my%20key=value", result);
         }
 
         [Fact]
@@ -510,7 +510,7 @@ namespace JanusRequest.Tests
 
             // Assert - commas are URL-encoded as %2c; double comma would be %2c%2c
             Assert.DoesNotContain("%2c%2c", result);
-            Assert.Contains("a%2cb", result);
+            Assert.Contains("a%2Cb", result);
         }
 
         // Helper classes for testing

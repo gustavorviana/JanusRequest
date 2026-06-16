@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -8,8 +8,6 @@ namespace JanusRequest
 {
     /// <summary>
     /// Represents a REST API response with strongly-typed data content.
-    /// This class extends RestApiResponse to include deserialized response data of the specified type,
-    /// providing convenient access to both HTTP response metadata and the parsed response content.
     /// </summary>
     /// <typeparam name="TResponse">The type of the deserialized response data.</typeparam>
     public class RestApiResponse<TResponse> : RestApiResponse
@@ -19,13 +17,8 @@ namespace JanusRequest
         /// </summary>
         public TResponse Data { get; }
 
-        /// <summary>
-        /// Initializes a new instance of the RestApiResponse class with HTTP response metadata and deserialized data.
-        /// </summary>
-        /// <param name="response">The HTTP response message containing status, headers, and metadata.</param>
-        /// <param name="data">The deserialized response data of type TResponse.</param>
-        internal RestApiResponse(HttpResponseMessage response, TResponse data, string rawResponse = null, ProblemDetails problem = null)
-            : base(response, rawResponse, problem)
+        internal RestApiResponse(HttpResponseMessage response, TResponse data, Exception error = null)
+            : base(response, error)
         {
             Data = data;
         }
@@ -33,8 +26,9 @@ namespace JanusRequest
 
     /// <summary>
     /// Represents a REST API response containing HTTP status information and headers.
-    /// This class provides a convenient wrapper around HTTP response data, extracting and
-    /// organizing status codes, descriptions, and headers for easy access.
+    /// Inspect <see cref="IsSuccessStatusCode"/>/<see cref="Status"/> for status checks, or call
+    /// <see cref="EnsureSuccessStatusCode"/> to throw the exception built by the configured
+    /// <see cref="HttpHandlers.IHttpErrorHandler"/> when the response is not successful.
     /// </summary>
     public class RestApiResponse
     {
@@ -49,94 +43,67 @@ namespace JanusRequest
         public string StatusDescription { get; }
 
         /// <summary>
-        /// Gets a value that indicates if the HTTP response was successful.
+        /// True when the status code is in the 2xx range.
         /// </summary>
-        public bool IsSuccessStatusCode
-        {
-            get => Status >= HttpStatusCode.OK && Status <= (HttpStatusCode)299;
-        }
+        public bool IsSuccessStatusCode => Status >= HttpStatusCode.OK && Status <= (HttpStatusCode)299;
 
         /// <summary>
-        /// Gets all HTTP headers from both the response and content headers as a dictionary.
+        /// Gets all HTTP headers from both the response and content headers as a read-only dictionary.
         /// </summary>
-        public Dictionary<string, IEnumerable<string>> Headers { get; }
+        public IReadOnlyDictionary<string, IReadOnlyList<string>> Headers { get; }
 
-        /// <summary>
-        /// Gets the raw response body string when the response is an error (4xx/5xx)
-        /// and <see cref="HttpApiClientSettings.CaptureRawResponse"/> is enabled. Otherwise null.
-        /// </summary>
-        public string RawResponse { get; }
+        private readonly Exception _error;
 
-        /// <summary>
-        /// Gets the parsed <see cref="ProblemDetails"/> when the error response follows RFC 9457.
-        /// Null when the response is successful or the body is not a valid problem details document.
-        /// </summary>
-        public ProblemDetails Problem { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the RestApiResponse class from an HTTP response message.
-        /// Extracts status information and headers from both response and content headers.
-        /// </summary>
-        /// <param name="response">The HTTP response message to extract information from.</param>
-        /// <param name="rawResponse">The raw response body string, or null if not captured.</param>
-        /// <param name="problem">The parsed ProblemDetails, or null if not applicable.</param>
-        internal RestApiResponse(HttpResponseMessage response, string rawResponse = null, ProblemDetails problem = null)
+        internal RestApiResponse(HttpResponseMessage response, Exception error = null)
         {
             Status = response.StatusCode;
             StatusDescription = response.ReasonPhrase ?? response.StatusCode.ToString();
             Headers = ExtractHeaders(response);
-            RawResponse = rawResponse;
-            Problem = problem;
+            _error = error;
         }
 
         /// <summary>
-        /// Throws an exception if the System.Net.Http.HttpResponseMessage.IsSuccessStatusCode property for the HTTP response is false.
+        /// Throws the exception produced by the configured <see cref="HttpHandlers.IHttpErrorHandler"/>
+        /// (or <see cref="HttpHandlers.HttpErrorHandler.Default"/> as fallback) when the response is not successful.
+        /// On a successful response, this method returns without throwing.
         /// </summary>
-        /// <exception cref="RequestException"></exception>
         public void EnsureSuccessStatusCode()
         {
-            if (!IsSuccessStatusCode)
-                throw new RequestException($"Response status code does not indicate success: {(int)Status} ({StatusDescription}).", Status);
+            if (IsSuccessStatusCode)
+                return;
+
+            if (_error != null)
+                throw _error;
+
+            // Defensive fallback: only reachable when a RestApiResponse is constructed manually without an error.
+            throw new RequestException($"Response status code does not indicate success: {(int)Status} ({StatusDescription}).", Status, null, Headers);
         }
 
         /// <summary>
-        /// Gets the first value of the specified header.
+        /// Gets the first value of the specified header, or null if absent.
         /// </summary>
-        /// <param name="name">The name of the header to retrieve.</param>
-        /// <returns>The first value of the header if found, null otherwise.</returns>
         public string GetHeader(string name)
-        {
-            return Headers.TryGetValue(name, out var values) ? values.FirstOrDefault() : null;
-        }
+            => Headers.TryGetValue(name, out var values) ? values.FirstOrDefault() : null;
 
         /// <summary>
-        /// Gets all values of the specified header.
+        /// Gets all values of the specified header, or an empty sequence if absent.
         /// </summary>
-        /// <param name="name">The name of the header to retrieve.</param>
-        /// <returns>An enumerable of header values if found, empty enumerable otherwise.</returns>
         public IEnumerable<string> GetHeaders(string name)
-        {
-            return Headers.TryGetValue(name, out var values) ? values : Enumerable.Empty<string>();
-        }
+            => Headers.TryGetValue(name, out var values) ? values : Enumerable.Empty<string>();
 
         /// <summary>
-        /// Determines whether the response contains the specified header.
+        /// Indicates whether the response contains the specified header.
         /// </summary>
-        /// <param name="name">The name of the header to check for.</param>
-        /// <returns>True if the header exists, false otherwise.</returns>
-        public bool HasHeader(string name)
-        {
-            return Headers.ContainsKey(name);
-        }
+        public bool HasHeader(string name) => Headers.ContainsKey(name);
 
-        private static Dictionary<string, IEnumerable<string>> ExtractHeaders(HttpResponseMessage response)
+        private static IReadOnlyDictionary<string, IReadOnlyList<string>> ExtractHeaders(HttpResponseMessage response)
         {
-            var headers = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
+            var headers = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
             foreach (var header in response.Headers)
-                headers[header.Key] = header.Value;
+                headers[header.Key] = header.Value as IReadOnlyList<string> ?? header.Value?.ToList() ?? new List<string>();
             if (response.Content?.Headers != null)
                 foreach (var header in response.Content.Headers)
-                    headers[header.Key] = header.Value;
+                    headers[header.Key] = header.Value as IReadOnlyList<string> ?? header.Value?.ToList() ?? new List<string>();
             return headers;
         }
     }

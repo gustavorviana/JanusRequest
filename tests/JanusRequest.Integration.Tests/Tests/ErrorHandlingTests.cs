@@ -23,59 +23,61 @@ public class ErrorHandlingTests
     }
 
     [Fact]
-    public async Task HttpErrorHandler_404_ThrowsRequestException()
+    public async Task HttpErrorHandler_404_ThrowsRequestExceptionOnEnsureSuccess()
     {
         using var client = CreateClientWithErrorHandler();
 
-        var ex = await Assert.ThrowsAsync<RequestException>(
-            () => client.GetAsync<ErrorResponse>("/api/errors/not-found"));
+        var response = await client.GetAsync<ErrorResponse>("/api/errors/not-found");
+        var ex = Assert.Throws<RequestException>(() => response.EnsureSuccessStatusCode());
 
         Assert.Equal(HttpStatusCode.NotFound, ex.StatusCode);
         Assert.Contains("Not found", ex.Response);
     }
 
     [Fact]
-    public async Task HttpErrorHandler_500_ThrowsRequestException()
+    public async Task HttpErrorHandler_500_ThrowsRequestExceptionOnEnsureSuccess()
     {
         using var client = CreateClientWithErrorHandler();
 
-        var ex = await Assert.ThrowsAsync<RequestException>(
-            () => client.GetAsync<ErrorResponse>("/api/errors/server-error"));
+        var response = await client.GetAsync<ErrorResponse>("/api/errors/server-error");
+        var ex = Assert.Throws<RequestException>(() => response.EnsureSuccessStatusCode());
 
         Assert.Equal(HttpStatusCode.InternalServerError, ex.StatusCode);
         Assert.Contains("Internal server error", ex.Response);
     }
 
     [Fact]
-    public async Task HttpErrorHandler_429_ThrowsThrottlingException()
+    public async Task HttpErrorHandler_429_ThrowsThrottlingExceptionOnEnsureSuccess()
     {
         using var client = CreateClientWithErrorHandler();
 
-        var ex = await Assert.ThrowsAsync<ThrottlingException>(
-            () => client.GetAsync<ErrorResponse>("/api/errors/throttled"));
+        var response = await client.GetAsync<ErrorResponse>("/api/errors/throttled");
+        var ex = Assert.Throws<ThrottlingException>(() => response.EnsureSuccessStatusCode());
 
         Assert.Equal(5, ex.RetryAfter);
         Assert.Equal(100, ex.RequestLimit);
     }
 
     [Fact]
-    public async Task HttpErrorHandler_401_ThrowsUnauthorizedAccessException()
+    public async Task HttpErrorHandler_401_ThrowsRequestExceptionOnEnsureSuccess()
     {
         using var client = CreateClientWithErrorHandler();
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => client.GetAsync<AuthInfoResponse>("/api/auth/bearer"));
+        var response = await client.GetAsync<AuthInfoResponse>("/api/auth/bearer");
+        var ex = Assert.Throws<RequestException>(() => response.EnsureSuccessStatusCode());
+
+        Assert.Equal(HttpStatusCode.Unauthorized, ex.StatusCode);
     }
 
     [Fact]
-    public async Task NoHandler_NonSuccessResponse_ReturnsWithoutException()
+    public async Task NoHandler_NonSuccessResponse_ReturnsResponseWithoutThrowing()
     {
         using var client = new HttpApiClient(_fixture.BaseUrl);
-        // No error handler registered
 
         var response = await client.GetAsync<ErrorResponse>("/api/errors/not-found");
 
         Assert.Equal(HttpStatusCode.NotFound, response.Status);
-        // Without handler, no exception is thrown - response is returned as-is
+        var ex = Assert.Throws<RequestException>(() => response.EnsureSuccessStatusCode());
+        Assert.Equal(HttpStatusCode.NotFound, ex.StatusCode);
     }
 }

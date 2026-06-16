@@ -38,7 +38,11 @@ namespace JanusRequest
             set
             {
                 _settings = value ?? throw new ArgumentNullException(nameof(Settings));
-                Authenticator = value.Authenticator;
+
+                // Only adopt the authenticator from settings when the client doesn't already have one,
+                // so explicit calls (SetBearerAuthentication, etc.) aren't silently lost.
+                if (Authenticator == null)
+                    Authenticator = value.Authenticator;
             }
         }
 
@@ -387,17 +391,22 @@ namespace JanusRequest
                     return new RestApiResponse<TResponse>(response, default);
 
                 await response.Content.LoadIntoBufferAsync();
-                var errorDetails = await ExtractErrorDetailsAsync(response);
+
+                var error = await BuildErrorExceptionAsync(response, cancellationToken);
 
                 var deserializer = GetDeserializer<TResponse>(body.GetType(), typeof(TResponse));
                 if (deserializer != null)
                 {
                     try
                     {
-                        return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings), errorDetails.RawResponse, errorDetails.Problem);
+                        var data = await deserializer.DeserializeAsync(response, Settings);
+                        return new RestApiResponse<TResponse>(response, data, error);
                     }
                     catch (Exception ex) when (!(ex is RequestException))
                     {
+                        if (error != null)
+                            return new RestApiResponse<TResponse>(response, default, error);
+
                         var errorContent = await response.Content.ReadAsStringAsync();
                         throw new DeserializationException(response.StatusCode, errorContent, typeof(TResponse), ex);
                     }
@@ -406,10 +415,13 @@ namespace JanusRequest
                 var content = await response.Content.ReadAsStringAsync();
                 try
                 {
-                    return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content, Settings.DefaultMediaType), errorDetails.RawResponse, errorDetails.Problem);
+                    return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content, Settings.DefaultMediaType), error);
                 }
                 catch (Exception ex) when (!(ex is RequestException))
                 {
+                    if (error != null)
+                        return new RestApiResponse<TResponse>(response, default, error);
+
                     throw new DeserializationException(response.StatusCode, content, typeof(TResponse), ex);
                 }
             }
@@ -431,20 +443,22 @@ namespace JanusRequest
                     return new RestApiResponse<TResponse>(response, default);
 
                 await response.Content.LoadIntoBufferAsync();
-                var errorDetails = await ExtractErrorDetailsAsync(response);
 
-                if (!response.IsSuccessStatusCode)
-                    return new RestApiResponse<TResponse>(response, default, errorDetails.RawResponse, errorDetails.Problem);
+                var error = await BuildErrorExceptionAsync(response, cancellationToken);
 
-                var deserializer = GetDeserializer<TResponse>(typeof(TResponse), typeof(TResponse));
+                var deserializer = GetDeserializer<TResponse>(null, typeof(TResponse));
                 if (deserializer != null)
                 {
                     try
                     {
-                        return new RestApiResponse<TResponse>(response, await deserializer.DeserializeAsync(response, Settings));
+                        var data = await deserializer.DeserializeAsync(response, Settings);
+                        return new RestApiResponse<TResponse>(response, data, error);
                     }
                     catch (Exception ex) when (!(ex is RequestException))
                     {
+                        if (error != null)
+                            return new RestApiResponse<TResponse>(response, default, error);
+
                         var errorContent = await response.Content.ReadAsStringAsync();
                         throw new DeserializationException(response.StatusCode, errorContent, typeof(TResponse), ex);
                     }
@@ -453,10 +467,13 @@ namespace JanusRequest
                 var content = await response.Content.ReadAsStringAsync();
                 try
                 {
-                    return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content));
+                    return new RestApiResponse<TResponse>(response, Settings.Deserialize<TResponse>(content), error);
                 }
                 catch (Exception ex) when (!(ex is RequestException))
                 {
+                    if (error != null)
+                        return new RestApiResponse<TResponse>(response, default, error);
+
                     throw new DeserializationException(response.StatusCode, content, typeof(TResponse), ex);
                 }
             }
@@ -475,8 +492,8 @@ namespace JanusRequest
             using (var response = await SendHttpRequestAsync(body, info, cancellationToken))
             {
                 await response.Content.LoadIntoBufferAsync();
-                var errorDetails = await ExtractErrorDetailsAsync(response);
-                return new RestApiResponse(response, errorDetails.RawResponse, errorDetails.Problem);
+                var error = await BuildErrorExceptionAsync(response, cancellationToken);
+                return new RestApiResponse(response, error);
             }
         }
 
@@ -503,7 +520,17 @@ namespace JanusRequest
                 return response;
 
             var retryMessage = CreateHttpRequestMessage(configuredInfo, body);
-            var shouldRetry = await authenticator.HandleUnauthorizedAsync(retryMessage, response, _httpClient);
+            bool shouldRetry;
+            try
+            {
+                shouldRetry = await authenticator.HandleUnauthorizedAsync(retryMessage, response, _httpClient);
+            }
+            catch
+            {
+                retryMessage.Dispose();
+                throw;
+            }
+
             if (!shouldRetry)
             {
                 retryMessage.Dispose();
@@ -544,54 +571,22 @@ namespace JanusRequest
         }
         #endregion
 
-        private async Task<ErrorDetails> ExtractErrorDetailsAsync(HttpResponseMessage response)
+        private async Task<Exception> BuildErrorExceptionAsync(HttpResponseMessage response, CancellationToken cancellationToken = default)
         {
-            if (response.IsSuccessStatusCode || response.Content == null)
-                return ErrorDetails.Empty;
+            if ((int)response.StatusCode < 400)
+                return null;
 
-            var rawResponse = Settings.CaptureRawResponse
-                ? await response.Content.ReadAsStringAsync()
-                : null;
+            if (!Settings.TryGetHandler<IHttpErrorHandler>(response, out var handler))
+                handler = HttpErrorHandler.Default;
 
-            ProblemDetails problem = null;
-            try
-            {
-                if (Settings.ProblemDeserializer != null)
-                {
-                    problem = await Settings.ProblemDeserializer.DeserializeAsync(response, Settings);
-                }
-                else
-                {
-                    var content = rawResponse ?? await response.Content.ReadAsStringAsync();
-                    if (!string.IsNullOrWhiteSpace(content))
-                        problem = Settings.Deserialize<ProblemDetails>(content, HttpContentType.Json);
-                }
-            }
-            catch
-            {
-                // Not a valid ProblemDetails response — ignore silently
-            }
-
-            return new ErrorDetails(rawResponse, problem);
-        }
-
-        private sealed class ErrorDetails
-        {
-            public static readonly ErrorDetails Empty = new ErrorDetails(null, null);
-
-            public string RawResponse { get; }
-            public ProblemDetails Problem { get; }
-
-            public ErrorDetails(string rawResponse, ProblemDetails problem)
-            {
-                RawResponse = rawResponse;
-                Problem = problem;
-            }
+            var ex = await handler.MapExceptionAsync(response, Settings, cancellationToken);
+            LogAll(l => l.LogError(ex, response.RequestMessage, response));
+            return ex;
         }
 
         private IResponseDeserializer<TResponse> GetDeserializer<TResponse>(Type requestType, Type responseType)
         {
-            var converterType = Settings.GetDeserializerType(requestType)
+            var converterType = (requestType != null ? Settings.GetDeserializerType(requestType) : null)
                              ?? Settings.GetDeserializerType(responseType)
                              ?? Settings.GetFallbackDeserializerType(responseType);
 
@@ -627,18 +622,6 @@ namespace JanusRequest
             stopwatch.Stop();
 
             LogAll(l => l.LogResponse(request, response, stopwatch.Elapsed));
-
-            if (response.IsSuccessStatusCode)
-                return response;
-
-            if (Settings.TryGetHandler<HttpErrorHandler>(response, out var handler))
-            {
-                var mapped = await handler.MapExceptionAsync(response);
-                LogAll(l => l.LogError(mapped, request, response));
-                throw mapped;
-            }
-
-            LogAll(l => l.LogError(new RequestException(response.StatusCode, Utils.ExtractHeaders(response)), request, response));
 
             return response;
         }
@@ -682,12 +665,30 @@ namespace JanusRequest
             var request = new HttpRequestMessage(new HttpMethod(info.Method ?? "GET"), requestUrl);
 
             if (info.Headers != null)
+            {
                 foreach (string name in info.Headers)
-                    request.Headers.TryAddWithoutValidation(name, info.Headers[name]);
+                {
+                    var value = info.Headers[name];
+                    if (ContainsCrLf(name) || ContainsCrLf(value))
+                        throw new InvalidOperationException($"Header '{name}' contains illegal CR/LF characters.");
+
+                    request.Headers.TryAddWithoutValidation(name, value);
+                }
+            }
 
             if (info.Cookies != null && info.Cookies.Count > 0)
             {
-                var cookieHeader = string.Join("; ", info.Cookies.Cast<Cookie>().Select(c => $"{c.Name}={c.Value}"));
+                var cookieHeader = string.Join("; ", info.Cookies.Cast<Cookie>().Select(c =>
+                {
+                    if (string.IsNullOrEmpty(c.Name) || ContainsCrLf(c.Name) || c.Name.IndexOfAny(InvalidCookieNameChars) >= 0)
+                        throw new InvalidOperationException($"Cookie name '{c.Name}' contains illegal characters.");
+
+                    var value = c.Value ?? string.Empty;
+                    if (ContainsCrLf(value) || value.IndexOf(';') >= 0)
+                        throw new InvalidOperationException($"Cookie value for '{c.Name}' contains illegal characters.");
+
+                    return $"{c.Name}={value}";
+                }));
                 request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
             }
 
@@ -696,6 +697,13 @@ namespace JanusRequest
                 request.Content = content;
 
             return request;
+        }
+
+        private static readonly char[] InvalidCookieNameChars = { '=', ';', ' ', '\t', ',' };
+
+        private static bool ContainsCrLf(string value)
+        {
+            return value != null && (value.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0);
         }
 
         private string BuildUrl(HttpRequestInfo info, UrlQueryBuilder query)

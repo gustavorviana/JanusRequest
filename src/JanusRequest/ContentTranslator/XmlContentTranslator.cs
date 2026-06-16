@@ -119,11 +119,15 @@ namespace JanusRequest.ContentTranslator
                 return null;
 
             var serializer = GetOrCreateSerializer(content.GetType());
-            using (var stringWriter = new StringWriter())
-            using (var xmlWriter = XmlWriter.Create(stringWriter, WriterSettings))
+            using (var stream = new MemoryStream())
             {
-                serializer.Serialize(xmlWriter, content);
-                return stringWriter.ToString();
+                using (var streamWriter = new StreamWriter(stream, new UTF8Encoding(false)))
+                using (var xmlWriter = XmlWriter.Create(streamWriter, WriterSettings))
+                {
+                    serializer.Serialize(xmlWriter, content);
+                }
+
+                return Encoding.UTF8.GetString(stream.ToArray());
             }
         }
 

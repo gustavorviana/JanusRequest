@@ -1,3 +1,5 @@
+using System;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -10,6 +12,21 @@ namespace JanusRequest
     /// </summary>
     public static class HttpClientExtension
     {
+        private static readonly string[] RequestLimitHeaderNames =
+        {
+            "X-RateLimit-Limit",
+            "X-Rate-Limit-Limit",
+            "RequestLimit",
+            "Rate-Limit-Limit"
+        };
+
+        private static readonly string[] HttpDateFormats =
+        {
+            "ddd, dd MMM yyyy HH:mm:ss 'GMT'",
+            "dddd, dd-MMM-yy HH:mm:ss 'GMT'",
+            "ddd MMM d HH:mm:ss yyyy"
+        };
+
         #region Sync Request
 
         /// <summary>
@@ -25,9 +42,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the GET request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Get<TResponse>(this IHttpApiClient client, string url) where TResponse : class
-        {
-            return client.GetAsync<TResponse>(url).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.GetAsync<TResponse>(url));
 
         /// <summary>
         /// Sends a synchronous GET request using the specified request information without a body and returns a typed response.
@@ -42,9 +57,7 @@ namespace JanusRequest
         /// <param name="info">The request information including path, headers, and query parameters.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Get<TResponse>(this IHttpApiClient client, HttpRequestInfo info) where TResponse : class
-        {
-            return client.GetAsync<TResponse>(info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.GetAsync<TResponse>(info));
 
         /// <summary>
         /// Sends a synchronous GET request with the specified request body and returns a typed response.
@@ -60,9 +73,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Get<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
-        {
-            return client.GetAsync(body, info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.GetAsync(body, info));
 
         /// <summary>
         /// Sends a synchronous GET request with the specified request body to the given URL and returns a typed response.
@@ -78,9 +89,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Get<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
-        {
-            return client.GetAsync(body, url).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.GetAsync(body, url));
 
         /// <summary>
         /// Sends a synchronous POST request with the specified request body and returns a typed response.
@@ -96,9 +105,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Post<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
-        {
-            return client.PostAsync(body, info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.PostAsync(body, info));
 
         /// <summary>
         /// Sends a synchronous POST request with the specified request body to the given URL and returns a typed response.
@@ -114,9 +121,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Post<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
-        {
-            return client.PostAsync(body, url).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.PostAsync(body, url));
 
         /// <summary>
         /// Sends a synchronous PUT request with the specified request body and returns a typed response.
@@ -132,9 +137,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Put<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
-        {
-            return client.PutAsync(body, info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.PutAsync(body, info));
 
         /// <summary>
         /// Sends a synchronous PUT request with the specified request body to the given URL and returns a typed response.
@@ -150,9 +153,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Put<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
-        {
-            return client.PutAsync(body, url).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.PutAsync(body, url));
 
         /// <summary>
         /// Sends a synchronous DELETE request with the specified request body and returns a typed response.
@@ -168,9 +169,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Delete<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
-        {
-            return client.DeleteAsync(body, info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.DeleteAsync(body, info));
 
         /// <summary>
         /// Sends a synchronous DELETE request with the specified request body to the given URL and returns a typed response.
@@ -186,9 +185,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Delete<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
-        {
-            return client.DeleteAsync(body, url).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.DeleteAsync(body, url));
 
         /// <summary>
         /// Sends a synchronous PATCH request with the specified request body and returns a typed response.
@@ -204,9 +201,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Patch<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
-        {
-            return client.PatchAsync(body, info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.PatchAsync(body, info));
 
         /// <summary>
         /// Sends a synchronous PATCH request with the specified request body to the given URL and returns a typed response.
@@ -222,9 +217,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Patch<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, string url) where TResponse : class
-        {
-            return client.PatchAsync(body, url).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.PatchAsync(body, url));
 
         /// <summary>
         /// Sends a synchronous HTTP request with the specified request body and returns a typed response.
@@ -241,9 +234,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Send<TResponse>(this IHttpApiClient client, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
-        {
-            return client.SendAsync(body, info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.SendAsync(body, info));
 
         /// <summary>
         /// Sends a synchronous HTTP request and returns an untyped response.
@@ -258,9 +249,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the raw response data.</returns>
         public static RestApiResponse SendRequest(this IHttpApiClient client, object body, HttpRequestInfo info = null)
-        {
-            return client.SendRequestAsync(body, info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.SendRequestAsync(body, info));
 
         /// <summary>
         /// Sends a synchronous HTTP request and returns the raw HttpResponseMessage.
@@ -275,9 +264,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>The raw HttpResponseMessage from the request.</returns>
         public static HttpResponseMessage SendWebRequest(this IHttpApiClient client, object body, HttpRequestInfo info = null)
-        {
-            return client.SendHttpRequestAsync(body, info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.SendHttpRequestAsync(body, info));
 
         /// <summary>
         /// Sends a synchronous HTTP request with the specified request information and returns a typed response.
@@ -293,9 +280,7 @@ namespace JanusRequest
         /// <param name="info">The request information including method, path, headers, and query parameters.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Send<TResponse>(this IHttpApiClient client, HttpRequestInfo info) where TResponse : class
-        {
-            return client.SendAsync<TResponse>(info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.SendAsync<TResponse>(info));
 
         /// <summary>
         /// Sends a synchronous HTTP request with the specified method, request body, and returns a typed response.
@@ -312,9 +297,7 @@ namespace JanusRequest
         /// <param name="info">Additional request information. Can be null.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Send<TResponse>(this IHttpApiClient client, string httpMethod, IRequestResponse<TResponse> body, HttpRequestInfo info = null) where TResponse : class
-        {
-            return client.SendAsync(httpMethod, body, info).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.SendAsync(httpMethod, body, info));
 
         /// <summary>
         /// Sends a synchronous HTTP request with the specified method, request body, and URL, and returns a typed response.
@@ -331,9 +314,7 @@ namespace JanusRequest
         /// <param name="url">The URL to send the request to.</param>
         /// <returns>A RestApiResponse containing the deserialized response data.</returns>
         public static RestApiResponse<TResponse> Send<TResponse>(this IHttpApiClient client, string httpMethod, IRequestResponse<TResponse> body, string url) where TResponse : class
-        {
-            return client.SendAsync(httpMethod, body, url).GetAwaiter().GetResult();
-        }
+        => SyncRunner.Run(() => client.SendAsync(httpMethod, body, url));
 
         #endregion
 
@@ -357,39 +338,38 @@ namespace JanusRequest
         }
 
         /// <summary>
-        /// Gets the retry-after value from the HTTP response headers.
-        /// Looks for the "Retry-After" header and attempts to parse it as an integer representing seconds.
+        /// Gets the retry-after value from the HTTP response headers per RFC 9110 §10.2.3.
+        /// Accepts either a delta-seconds integer or an HTTP-date and returns the wait in seconds (0 if absent or invalid).
         /// </summary>
-        /// <param name="response">The HTTP response to extract the retry-after value from.</param>
-        /// <returns>The retry-after value in seconds if found and parseable, 0 otherwise.</returns>
         public static int GetRetryAfter(this HttpResponseMessage response)
         {
-            return response.Headers.TryGetValue("Retry-After", out var retryAfterValue) &&
-                int.TryParse(retryAfterValue, out var retryAfter) ?
-                retryAfter : 0;
+            if (!response.Headers.TryGetValue("Retry-After", out var retryAfterValue) || string.IsNullOrWhiteSpace(retryAfterValue))
+                return 0;
+
+            retryAfterValue = retryAfterValue.Trim();
+
+            if (int.TryParse(retryAfterValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds))
+                return seconds < 0 ? 0 : seconds;
+
+            if (DateTimeOffset.TryParseExact(retryAfterValue, HttpDateFormats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var when)
+                || DateTimeOffset.TryParse(retryAfterValue, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out when))
+            {
+                var delta = when - DateTimeOffset.UtcNow;
+                return delta.TotalSeconds <= 0 ? 0 : (int)Math.Ceiling(delta.TotalSeconds);
+            }
+
+            return 0;
         }
 
         /// <summary>
         /// Gets the request limit value from the HTTP response headers.
-        /// Searches for common rate limit header names and returns the first parseable limit value found.
+        /// Searches X-RateLimit-Limit, X-Rate-Limit-Limit, RequestLimit, and Rate-Limit-Limit; returns 0 if none parseable.
         /// </summary>
-        /// <param name="response">The HTTP response to extract the request limit from.</param>
-        /// <returns>
-        /// The request limit value if found in any of the common rate limit headers, 0 otherwise.
-        /// Searches headers: X-RateLimit-Limit, X-Rate-Limit-Limit, RequestLimit, Rate-Limit-Limit.
-        /// </returns>
         public static int GetRequestLimit(this HttpResponseMessage response)
         {
-            var headerNames = new[]
-            {
-                "X-RateLimit-Limit",
-                "X-Rate-Limit-Limit",
-                "RequestLimit",
-                "Rate-Limit-Limit"
-            };
-
-            foreach (var headerName in headerNames)
-                if (response.Headers.TryGetValue(headerName, out var limitValue) && int.TryParse(limitValue, out var limit))
+            for (var i = 0; i < RequestLimitHeaderNames.Length; i++)
+                if (response.Headers.TryGetValue(RequestLimitHeaderNames[i], out var limitValue)
+                    && int.TryParse(limitValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var limit))
                     return limit;
 
             return 0;

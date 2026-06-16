@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace JanusRequest
 {
@@ -17,25 +18,21 @@ namespace JanusRequest
     /// format providers, and HTTP response handlers. This class manages content type translators,
     /// provides formatting for various data types, and handles response processing strategies.
     /// </summary>
-    public class HttpApiClientSettings
+    public class HttpApiClientSettings : IDisposable
     {
+        private static readonly BufferContentBuilder _bufferReader = new BufferContentBuilder();
+        private static HttpApiClientSettings _default = new HttpApiClientSettings();
+
         private readonly MediaTypeMap<ContentTypeTranslator> _contentTypeTranslator = new MediaTypeMap<ContentTypeTranslator>();
         private readonly ConcurrentDictionary<Type, HttpClientTree> _httpClientTree = new ConcurrentDictionary<Type, HttpClientTree>();
         private readonly ConcurrentDictionary<Type, Type> _deserializerTypeCache = new ConcurrentDictionary<Type, Type>();
-        private static readonly BufferContentBuilder _bufferReader = new BufferContentBuilder();
         private IFormatProvider _formatProvider = CultureInfo.InvariantCulture;
-        private static HttpApiClientSettings _default = new HttpApiClientSettings();
-        private IHttpHandlerBase[] _handlers = new IHttpHandlerBase[0];
+        private volatile IHttpHandlerBase[] _handlers = new IHttpHandlerBase[0];
         private readonly List<IHttpApiClientLogger> _loggers = new List<IHttpApiClientLogger>();
+        private readonly object _loggersLock = new object();
+        private readonly object _handlersLock = new object();
         private Type _fallbackDeserializerType;
-
-        /// <summary>
-        /// Global content translator overrides keyed by content type name.
-        /// When a translator is registered here, it will replace the default
-        /// translator for that content type in all future settings instances.
-        /// </summary>
-        private static readonly ConcurrentDictionary<string, Func<ContentTypeTranslator>> GlobalContentTranslators =
-            new ConcurrentDictionary<string, Func<ContentTypeTranslator>>(StringComparer.OrdinalIgnoreCase);
+        private bool _disposed;
 
         /// <summary>
         /// Gets or sets the format string used for DateTime serialization.
@@ -114,13 +111,6 @@ namespace JanusRequest
         public bool LogResponseHeadersOnError { get; set; } = false;
 
         /// <summary>
-        /// Gets or sets whether the raw response body should be captured on error responses (4xx/5xx).
-        /// When enabled, <see cref="RestApiResponse.RawResponse"/> will contain the response body string.
-        /// Default is false to avoid unnecessary memory allocation.
-        /// </summary>
-        public bool CaptureRawResponse { get; set; }
-
-        /// <summary>
         /// Gets or sets a custom deserializer for parsing error responses into <see cref="ProblemDetails"/>.
         /// When null (default), the standard JSON deserializer is used.
         /// Set this to handle non-JSON error formats or custom problem details parsing.
@@ -148,7 +138,32 @@ namespace JanusRequest
         /// <returns>The current HttpApiClientSettings instance for method chaining.</returns>
         public HttpApiClientSettings SetHandlers(params IHttpHandlerBase[] handlers)
         {
-            _handlers = handlers;
+            lock (_handlersLock)
+            {
+                _handlers = handlers ?? new IHttpHandlerBase[0];
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Appends a handler to the existing handler list. Handlers are evaluated in registration order
+        /// (first match wins via <see cref="IHttpHandlerBase.CanHandle"/>), so register specific handlers
+        /// before more generic fallbacks.
+        /// </summary>
+        /// <param name="handler">The handler to append. Cannot be null.</param>
+        /// <returns>The current settings instance for fluent chaining.</returns>
+        public HttpApiClientSettings AddHandler(IHttpHandlerBase handler)
+        {
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+
+            lock (_handlersLock)
+            {
+                var current = _handlers;
+                var appended = new IHttpHandlerBase[current.Length + 1];
+                Array.Copy(current, appended, current.Length);
+                appended[current.Length] = handler;
+                _handlers = appended;
+            }
             return this;
         }
 
@@ -161,14 +176,26 @@ namespace JanusRequest
         public HttpApiClientSettings AddLogger(IHttpApiClientLogger logger)
         {
             if (logger == null) throw new ArgumentNullException(nameof(logger));
-            _loggers.Add(logger);
+            lock (_loggersLock)
+            {
+                _loggers.Add(logger);
+            }
             return this;
         }
 
         /// <summary>
-        /// Gets the registered loggers.
+        /// Gets a snapshot of the registered loggers.
         /// </summary>
-        internal IReadOnlyList<IHttpApiClientLogger> Loggers => _loggers;
+        internal IReadOnlyList<IHttpApiClientLogger> Loggers
+        {
+            get
+            {
+                lock (_loggersLock)
+                {
+                    return _loggers.ToArray();
+                }
+            }
+        }
 
         /// <summary>
         /// Sets the content type translators used for serializing and deserializing different content types.
@@ -181,30 +208,6 @@ namespace JanusRequest
                 _contentTypeTranslator[builder.ContentType] = builder;
 
             return this;
-        }
-
-        /// <summary>
-        /// Registers a global content translator override for the specified content type
-        /// (for example, "application/json").
-        /// This affects all future <see cref="HttpApiClientSettings"/> instances created after
-        /// the registration. If <paramref name="factory"/> is null, the override is removed.
-        /// </summary>
-        /// <param name="contentType">The content type value, e.g. "application/json".</param>
-        /// <param name="factory">Factory that creates the translator instance, or null to remove.</param>
-        public static void RegisterGlobalContentTranslator(string contentType, Func<ContentTypeTranslator> factory)
-        {
-            if (string.IsNullOrWhiteSpace(contentType))
-                throw new ArgumentException("Content type cannot be null or empty.", nameof(contentType));
-
-            contentType = contentType.Trim().ToLowerInvariant();
-
-            if (factory == null)
-            {
-                GlobalContentTranslators.TryRemove(contentType, out _);
-                return;
-            }
-
-            GlobalContentTranslators[contentType] = factory;
         }
 
         /// <summary>
@@ -265,8 +268,54 @@ namespace JanusRequest
         /// <returns>True if a suitable handler was found, false otherwise.</returns>
         public bool TryGetHandler<T>(HttpResponseMessage response, out T handler) where T : IHttpHandlerBase
         {
-            handler = _handlers.OfType<T>().FirstOrDefault(x => x.CanHandle(response));
-            return handler != null;
+            var current = _handlers;
+            for (var i = 0; i < current.Length; i++)
+            {
+                if (current[i] is T candidate && candidate.CanHandle(response))
+                {
+                    handler = candidate;
+                    return true;
+                }
+            }
+
+            handler = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Attempts to parse the response body as <see cref="ProblemDetails"/> using the configured
+        /// <see cref="ProblemDeserializer"/> when set, or the JSON content translator otherwise.
+        /// Returns null when the body is empty or cannot be parsed as problem details.
+        /// </summary>
+        /// <param name="response">The HTTP response whose body should be parsed.</param>
+        /// <param name="rawResponse">An already-read body string, when available, to avoid re-reading the response content.</param>
+        /// <param name="cancellationToken">Cancellation token propagated from the originating request.</param>
+        public async Task<ProblemDetails> TryParseProblemDetailsAsync(HttpResponseMessage response, string rawResponse = null, CancellationToken cancellationToken = default)
+        {
+            if (response?.Content == null)
+                return null;
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                if (ProblemDeserializer != null)
+                    return await ProblemDeserializer.DeserializeAsync(response, this);
+
+                var content = rawResponse ?? await response.Content.ReadAsStringAsync();
+                if (string.IsNullOrWhiteSpace(content))
+                    return null;
+
+                return Deserialize<ProblemDetails>(content, HttpContentType.Json);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -435,10 +484,14 @@ namespace JanusRequest
             if (_fallbackDeserializerType == null)
                 return null;
 
+            // Don't overwrite an explicit registration that was previously cached.
+            if (_deserializerTypeCache.TryGetValue(responseType, out var existing) && existing != null)
+                return existing;
+
             try
             {
                 var closedType = _fallbackDeserializerType.MakeGenericType(responseType);
-                _deserializerTypeCache[responseType] = closedType;
+                _deserializerTypeCache.TryAdd(responseType, closedType);
                 return closedType;
             }
             catch (ArgumentException)
@@ -455,6 +508,16 @@ namespace JanusRequest
         internal HttpClientTree GetTree(Type type)
         {
             return _httpClientTree.GetOrAdd(type, treeType => new HttpClientTree(treeType));
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            _contentTypeTranslator?.Dispose();
         }
     }
 }

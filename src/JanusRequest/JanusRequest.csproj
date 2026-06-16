@@ -46,18 +46,20 @@
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net45'">
-		<Reference Include="System.Web" />
 		<Reference Include="System.ComponentModel.DataAnnotations" />
 		<Reference Include="System.Net.Http" />
 		<PackageReference Include="Newtonsoft.Json" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-		<Reference Include="System.Web" />
 		<Reference Include="System.ComponentModel.DataAnnotations" />
 		<Reference Include="System.Net.Http" />
 		<PackageReference Include="System.Text.Json" />
 	</ItemGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+		<DefineConstants>$(DefineConstants);NET472_OR_GREATER</DefineConstants>
+	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 		<PackageReference Include="System.ComponentModel.Annotations" />
@@ -68,11 +70,7 @@
 		<PackageReference Include="System.Text.Json" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="System.Text.Json" />
-	</ItemGroup>
-
-	<ItemGroup>
+<ItemGroup>
 		<None Include="../../icon.png">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>

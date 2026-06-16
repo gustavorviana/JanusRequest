@@ -86,7 +86,7 @@ namespace JanusRequest.ContentTranslator.Converters
                 var propertyName = reader.GetString();
                 reader.Read();
 
-                switch (propertyName)
+                switch (propertyName?.ToLowerInvariant())
                 {
                     case "type":
                         type = reader.GetString();

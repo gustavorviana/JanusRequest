@@ -6,7 +6,8 @@ namespace JanusRequest
 {
     /// <summary>
     /// Provides HTTP API methods that return deserialized response data directly,
-    /// throwing <see cref="RequestException"/> on non-success status codes.
+    /// throwing <see cref="ProblemDetailsException"/> for RFC 9457 problem details bodies
+    /// and <see cref="RequestException"/> for other non-success status codes.
     /// This interface simplifies common usage patterns where callers only need the response data
     /// and want automatic error handling without inspecting HTTP metadata.
     /// </summary>
@@ -16,25 +17,25 @@ namespace JanusRequest
 
         /// <summary>
         /// Sends a GET request and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> GetDataAsync<TResponse>(string url, CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends a GET request using the specified request info and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> GetDataAsync<TResponse>(HttpRequestInfo info, CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends a GET request with the specified body and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> GetDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends a GET request with the specified body to the given URL and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> GetDataAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class;
 
@@ -44,13 +45,13 @@ namespace JanusRequest
 
         /// <summary>
         /// Sends a POST request with the specified body and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> PostDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends a POST request with the specified body to the given URL and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> PostDataAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class;
 
@@ -60,13 +61,13 @@ namespace JanusRequest
 
         /// <summary>
         /// Sends a PUT request with the specified body and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> PutDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends a PUT request with the specified body to the given URL and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> PutDataAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class;
 
@@ -76,13 +77,13 @@ namespace JanusRequest
 
         /// <summary>
         /// Sends a DELETE request with the specified body and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> DeleteDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends a DELETE request with the specified body to the given URL and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> DeleteDataAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class;
 
@@ -92,13 +93,13 @@ namespace JanusRequest
 
         /// <summary>
         /// Sends a PATCH request with the specified body and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> PatchDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends a PATCH request with the specified body to the given URL and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> PatchDataAsync<TResponse>(IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class;
 
@@ -108,31 +109,31 @@ namespace JanusRequest
 
         /// <summary>
         /// Sends an HTTP request with the specified method and body, returning the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> SendDataAsync<TResponse>(string httpMethod, IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends an HTTP request with the specified method, body, and URL, returning the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> SendDataAsync<TResponse>(string httpMethod, IRequestResponse<TResponse> body, string url, CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends an HTTP request with the specified body, path, and method, returning the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> SendDataAsync<TResponse>(IRequestResponse<TResponse> body, string path, string method = "GET", CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends an HTTP request using the body's attributes and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> SendDataAsync<TResponse>(IRequestResponse<TResponse> body, HttpRequestInfo info = null, CancellationToken cancellationToken = default) where TResponse : class;
 
         /// <summary>
         /// Sends an HTTP request using the specified request info (no body) and returns the deserialized response data.
-        /// Throws <see cref="RequestException"/> if the response status code is not 2xx.
+        /// Throws <see cref="ProblemDetailsException"/> when the error response is an RFC 9457 problem details document, or <see cref="RequestException"/> otherwise. Both inherit from <see cref="RequestException"/>.
         /// </summary>
         Task<TResponse> SendDataAsync<TResponse>(HttpRequestInfo info, CancellationToken cancellationToken = default) where TResponse : class;
 

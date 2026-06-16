@@ -101,6 +101,10 @@ namespace JanusRequest.Extensions.DependencyInjection
 
         private static void TryRegisterCore(IServiceCollection services)
         {
+            // Fallback Settings registration so AddJanusRequestClient(name, ...) works
+            // without a prior parameterless AddJanusRequestClient() registering settings.
+            services.TryAddSingleton(_ => HttpApiClientSettings.Default);
+
             // Logger adapter for IHttpApiClientLogger -> ILogger<HttpApiClient>
             services.TryAddSingleton<IHttpApiClientLogger, LoggingHttpApiClientLogger>();
 

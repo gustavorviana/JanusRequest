@@ -40,15 +40,23 @@ namespace JanusRequest
         /// </summary>
         /// <param name="statusCode">The HTTP status code from the response.</param>
         /// <param name="problem">The problem details response, which may be null or partially filled.</param>
-        public ProblemDetailsException(HttpStatusCode statusCode, ProblemDetails problem)
-            : base(statusCode, BuildMessage(statusCode, problem))
+        /// <param name="rawResponse">The raw response body string, when captured.</param>
+        /// <param name="headers">The response headers from the failed request.</param>
+        public ProblemDetailsException(HttpStatusCode statusCode, ProblemDetails problem, string rawResponse = null, IReadOnlyDictionary<string, IReadOnlyList<string>> headers = null)
+            : base(BuildMessage(statusCode, problem), statusCode, rawResponse, headers)
         {
+            Problem = problem;
             Type = problem?.Type;
             Title = problem?.Title;
             Detail = problem?.Detail;
             Instance = problem?.Instance;
             Extensions = problem?.Extensions;
         }
+
+        /// <summary>
+        /// Gets the parsed <see cref="ProblemDetails"/> response that originated this exception, if any.
+        /// </summary>
+        public ProblemDetails Problem { get; }
 
         private static string BuildMessage(HttpStatusCode statusCode, ProblemDetails problem)
         {

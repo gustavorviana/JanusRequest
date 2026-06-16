@@ -219,7 +219,7 @@ namespace JanusRequest
             _lock.EnterReadLock();
             try
             {
-                return _values.ToArray().GetEnumerator() as IEnumerator<KeyValuePair<string, TValue>>;
+                return ((IEnumerable<KeyValuePair<string, TValue>>)_values.ToArray()).GetEnumerator();
             }
             finally
             {
@@ -232,7 +232,7 @@ namespace JanusRequest
             _lock.EnterReadLock();
             try
             {
-                return _values.ToArray().GetEnumerator();
+                return ((IEnumerable<KeyValuePair<string, TValue>>)_values.ToArray()).GetEnumerator();
             }
             finally
             {

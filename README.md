@@ -65,7 +65,8 @@ var response2 = await client.GetAsync<UserResponse>("/users/42");
 | **Request Models & Attributes** | `[Request]`, `[PathOnly]`, `[QueryArg]`, `[FormData]`, `[Header]`, `[Cookie]` and more | [Attributes](https://github.com/gustavorviana/JanusRequest/wiki/Attributes) / [Request Models](https://github.com/gustavorviana/JanusRequest/wiki/Request-Models) |
 | **All HTTP Verbs** | GET, POST, PUT, DELETE, PATCH + custom verbs, sync and async | [HttpApiClient Reference](https://github.com/gustavorviana/JanusRequest/wiki/HttpApiClient-&-IHttpApiClient-Reference) |
 | **Authentication** | Bearer, Basic, API Key, custom schemes, and `IHttpAuthenticator` | [Authentication](https://github.com/gustavorviana/JanusRequest/wiki/Authentication) / [IHttpAuthenticator](https://github.com/gustavorviana/JanusRequest/wiki/IHttpAuthenticator) |
-| **Error Handling** | `HttpErrorHandler`, `ThrottleRecoveryHandler`, `RequestException` | [Error Handling](https://github.com/gustavorviana/JanusRequest/wiki/ErrorHandling) |
+| **Error Handling** | `IHttpErrorHandler` (default `HttpErrorHandler`), `ThrottleRecoveryHandler`, `RequestException` | [Error Handling](https://github.com/gustavorviana/JanusRequest/wiki/ErrorHandling) |
+| **Problem Details (RFC 9457)** | Automatic parsing of error responses into `ProblemDetails`, `ProblemDetailsException`, custom `IProblemDeserializer` | [Problem Details](https://github.com/gustavorviana/JanusRequest/wiki/Problem-Details) |
 | **Custom Deserializers** | `IResponseDeserializer<T>`, `[ResponseDeserializer]` attribute | [Response Handlers](https://github.com/gustavorviana/JanusRequest/wiki/Response-Handlers) |
 | **Logging** | `IHttpApiClientLogger` with framework-agnostic lifecycle hooks | [Logging](https://github.com/gustavorviana/JanusRequest/wiki/Logging) |
 | **JSON Serialization** | `System.Text.Json` by default, Newtonsoft.Json opt-in | [Serialization](https://github.com/gustavorviana/JanusRequest/wiki/Serialization) |

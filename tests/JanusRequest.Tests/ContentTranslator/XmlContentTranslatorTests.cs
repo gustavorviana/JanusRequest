@@ -83,7 +83,7 @@ namespace JanusRequest.Tests.ContentTranslator
 
             // Assert
             Assert.NotNull(result);
-            Assert.Contains("<?xml version=\"1.0\" encoding=\"utf-16\"?>", result);
+            Assert.Contains("<?xml version=\"1.0\" encoding=\"utf-8\"?>", result);
             Assert.Contains("<TestPerson", result);
             Assert.Contains("<Name>John</Name>", result);
             Assert.Contains("<Age>25</Age>", result);

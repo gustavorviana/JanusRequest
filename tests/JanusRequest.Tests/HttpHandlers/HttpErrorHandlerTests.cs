@@ -1,4 +1,4 @@
-﻿using JanusRequest.HttpHandlers;
+using JanusRequest.HttpHandlers;
 using System.Net;
 using System.Text;
 
@@ -7,10 +7,12 @@ namespace JanusRequest.Tests.HttpHandlers
     public class HttpErrorHandlerTests
     {
         private readonly HttpErrorHandler _handler;
+        private readonly HttpApiClientSettings _settings;
 
         public HttpErrorHandlerTests()
         {
             _handler = new HttpErrorHandler();
+            _settings = new HttpApiClientSettings();
         }
 
         [Theory]
@@ -22,69 +24,47 @@ namespace JanusRequest.Tests.HttpHandlers
         [InlineData(HttpStatusCode.OK, false)]
         [InlineData(HttpStatusCode.Created, false)]
         [InlineData(HttpStatusCode.NoContent, false)]
+        [InlineData(HttpStatusCode.MovedPermanently, false)]
+        [InlineData(HttpStatusCode.Redirect, false)]
+        [InlineData(HttpStatusCode.NotModified, false)]
         public void CanHandle_WithDifferentStatusCodes_ShouldReturnExpectedResult(HttpStatusCode statusCode, bool expected)
         {
-            // Arrange
             var response = new HttpResponseMessage(statusCode);
 
-            // Act
             var result = _handler.CanHandle(response);
 
-            // Assert
             Assert.Equal(expected, result);
         }
 
         [Fact]
-        public void CanHandle_WithSuccessStatusCode_ShouldReturnFalse()
+        public async Task MapExceptionAsync_WithUnauthorizedStatus_ShouldReturnRequestException()
         {
-            // Arrange
-            var response = new HttpResponseMessage(HttpStatusCode.OK);
-
-            // Act
-            var result = _handler.CanHandle(response);
-
-            // Assert
-            Assert.False(result);
-        }
-
-        [Fact]
-        public async Task MapExceptionAsync_WithUnauthorizedStatus_ShouldReturnUnauthorizedAccessException()
-        {
-            // Arrange
             var response = CreateResponse(HttpStatusCode.Unauthorized, "Unauthorized");
 
-            // Act
-            var result = await _handler.MapExceptionAsync(response);
+            var result = await _handler.MapExceptionAsync(response, _settings);
 
-            // Assert
-            Assert.IsType<UnauthorizedAccessException>(result);
-            Assert.Equal("The server refused the API credentials.", result.Message);
+            Assert.IsType<RequestException>(result);
+            Assert.Equal(HttpStatusCode.Unauthorized, ((RequestException)result).StatusCode);
         }
 
         [Fact]
         public async Task MapExceptionAsync_WithThrottlingStatus_ShouldReturnThrottlingException()
         {
-            // Arrange
             var response = CreateResponse((HttpStatusCode)429, "Too Many Requests");
             response.Headers.Add("Retry-After", "60");
 
-            // Act
-            var result = await _handler.MapExceptionAsync(response);
+            var result = await _handler.MapExceptionAsync(response, _settings);
 
-            // Assert
             Assert.IsType<ThrottlingException>(result);
         }
 
         [Fact]
         public async Task MapExceptionAsync_WithThrottlingStatusAndNoRetryAfterHeader_ShouldReturnThrottlingExceptionWithZeroRetry()
         {
-            // Arrange
             var response = CreateResponse((HttpStatusCode)429, "Too Many Requests");
 
-            // Act
-            var result = await _handler.MapExceptionAsync(response);
+            var result = await _handler.MapExceptionAsync(response, _settings);
 
-            // Assert
             var throttlingException = Assert.IsType<ThrottlingException>(result);
             Assert.Equal(0, throttlingException.RetryAfter);
         }
@@ -92,16 +72,13 @@ namespace JanusRequest.Tests.HttpHandlers
         [Fact]
         public async Task MapExceptionAsync_WithOtherErrorStatus_ShouldReturnRequestException()
         {
-            // Arrange
             var responseContent = "InternalServerError";
             var requestUri = new Uri("https://api.example.com/test");
             var response = CreateResponse(HttpStatusCode.InternalServerError, responseContent);
             response.RequestMessage = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
-            // Act
-            var result = await _handler.MapExceptionAsync(response);
+            var result = await _handler.MapExceptionAsync(response, _settings);
 
-            // Assert
             Assert.IsType<RequestException>(result);
             var requestException = (RequestException)result;
             Assert.Equal(HttpStatusCode.InternalServerError, requestException.StatusCode);
@@ -116,13 +93,10 @@ namespace JanusRequest.Tests.HttpHandlers
         [InlineData(HttpStatusCode.InternalServerError)]
         public async Task MapExceptionAsync_WithVariousErrorCodes_ShouldReturnRequestException(HttpStatusCode statusCode)
         {
-            // Arrange
             var response = CreateResponse(statusCode, "Error message");
 
-            // Act
-            var result = await _handler.MapExceptionAsync(response);
+            var result = await _handler.MapExceptionAsync(response, _settings);
 
-            // Assert
             Assert.IsType<RequestException>(result);
             Assert.Equal(statusCode, ((RequestException)result).StatusCode);
         }
@@ -130,14 +104,11 @@ namespace JanusRequest.Tests.HttpHandlers
         [Fact]
         public async Task OnThrottling_ShouldReturnThrottlingExceptionWithCorrectRetryAfter()
         {
-            // Arrange
             var response = CreateResponse((HttpStatusCode)429, "Too Many Requests");
             response.Headers.Add("Retry-After", "300");
 
-            // Act
-            var result = await _handler.MapExceptionAsync(response);
+            var result = await _handler.MapExceptionAsync(response, _settings);
 
-            // Assert
             var throttlingException = Assert.IsType<ThrottlingException>(result);
             Assert.Equal(300, throttlingException.RetryAfter);
             Assert.Equal(0, throttlingException.RequestLimit);
@@ -146,17 +117,14 @@ namespace JanusRequest.Tests.HttpHandlers
         [Fact]
         public async Task MapExceptionAsync_WithNullContent_DoesNotThrow()
         {
-            // Arrange
             var response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
             {
                 Content = null!,
                 RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://api.example.com/test")
             };
 
-            // Act
-            var result = await _handler.MapExceptionAsync(response);
+            var result = await _handler.MapExceptionAsync(response, _settings);
 
-            // Assert
             Assert.IsType<RequestException>(result);
             var requestException = (RequestException)result;
             Assert.Equal(HttpStatusCode.InternalServerError, requestException.StatusCode);
@@ -165,20 +133,31 @@ namespace JanusRequest.Tests.HttpHandlers
         [Fact]
         public async Task MapExceptionAsync_WithEmptyContent_ReturnsRequestExceptionWithEmptyMessage()
         {
-            // Arrange
             var response = CreateResponse(HttpStatusCode.BadRequest, "");
 
-            // Act
-            var result = await _handler.MapExceptionAsync(response);
+            var result = await _handler.MapExceptionAsync(response, _settings);
 
-            // Assert
             Assert.IsType<RequestException>(result);
         }
 
-        private static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, string content)
+        [Fact]
+        public async Task MapExceptionAsync_WithProblemDetailsBody_ReturnsProblemDetailsException()
+        {
+            var problemBody = "{\"type\":\"https://example.com/probs/out-of-credit\",\"title\":\"You do not have enough credit.\",\"status\":400,\"detail\":\"Your current balance is 30, but that costs 50.\"}";
+            var response = CreateResponse(HttpStatusCode.BadRequest, problemBody, "application/problem+json");
+
+            var result = await _handler.MapExceptionAsync(response, _settings);
+
+            var problemException = Assert.IsType<ProblemDetailsException>(result);
+            Assert.Equal(HttpStatusCode.BadRequest, problemException.StatusCode);
+            Assert.Equal("You do not have enough credit.", problemException.Title);
+            Assert.Equal("Your current balance is 30, but that costs 50.", problemException.Detail);
+        }
+
+        private static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, string content, string mediaType = "application/json")
         {
             var response = new HttpResponseMessage(statusCode);
-            response.Content = new StringContent(content, Encoding.UTF8, "application/json");
+            response.Content = new StringContent(content, Encoding.UTF8, mediaType);
             response.RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://api.example.com/test");
             return response;
         }
