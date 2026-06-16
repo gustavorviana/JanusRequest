@@ -1,62 +1,68 @@
 using System;
-using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace JanusRequest.HttpHandlers
 {
     /// <summary>
-    /// HTTP error handler responsible for processing unsuccessful HTTP responses and mapping them to appropriate exceptions.
-    /// This handler provides default error handling behavior for common HTTP status codes including unauthorized access,
-    /// throttling (429), and other error responses.
+    /// Default <see cref="IHttpErrorHandler"/> that maps unsuccessful HTTP responses (status >= 400)
+    /// to exceptions. Returns <see cref="ThrottlingException"/> for 429, <see cref="ProblemDetailsException"/>
+    /// when the response body can be parsed as RFC 9457 problem details, and <see cref="RequestException"/>
+    /// otherwise.
     /// </summary>
-    public class HttpErrorHandler : IHttpHandlerBase
+    public class HttpErrorHandler : IHttpErrorHandler
     {
         /// <summary>
-        /// Determines whether this handler can process the given HTTP response.
+        /// Shared stateless instance used as the fallback error mapper when no <see cref="IHttpErrorHandler"/>
+        /// is registered on <see cref="HttpApiClientSettings"/>.
         /// </summary>
-        /// <param name="response">The HTTP response to check.</param>
-        /// <returns>True if the response has an unsuccessful status code, false otherwise.</returns>
-        public virtual bool CanHandle(HttpResponseMessage response) => !response.IsSuccessStatusCode;
+        public static readonly HttpErrorHandler Default = new HttpErrorHandler();
+
 
         /// <summary>
-        /// Maps an unsuccessful HTTP response to an appropriate exception.
-        /// Provides specific handling for throttling (429) and unauthorized (401) responses,
-        /// with a general RequestException for other error status codes.
+        /// Returns true for HTTP error responses, defined as status code >= 400 (4xx and 5xx).
+        /// 1xx and 3xx responses are not considered errors.
         /// </summary>
-        /// <param name="response">The HTTP response to map to an exception.</param>
-        /// <returns>
-        /// A task that represents the asynchronous operation. The task result contains:
-        /// - ThrottlingException for 429 status codes
-        /// - UnauthorizedAccessException for 401 status codes  
-        /// - RequestException for other unsuccessful status codes
-        /// </returns>
-        public virtual async Task<Exception> MapExceptionAsync(HttpResponseMessage response)
+        public virtual bool CanHandle(HttpResponseMessage response) => (int)response.StatusCode >= 400;
+
+        /// <summary>
+        /// Maps an unsuccessful HTTP response to an exception.
+        /// </summary>
+        /// <param name="response">The HTTP response to map.</param>
+        /// <param name="settings">The settings of the originating client, used to access the configured problem details deserializer.</param>
+        public virtual async Task<Exception> MapExceptionAsync(HttpResponseMessage response, HttpApiClientSettings settings, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if ((int)response.StatusCode == 429)
                 return OnThrottling(response);
 
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-                return new UnauthorizedAccessException("The server refused the API credentials.");
-
             var headers = Utils.ExtractHeaders(response);
-
             var body = response.Content != null
                 ? await response.Content.ReadAsStringAsync()
                 : null;
+            var url = response.RequestMessage?.RequestUri?.ToString();
+
+            var problem = await settings.TryParseProblemDetailsAsync(response, body, cancellationToken);
+            if (problem != null)
+            {
+                return new ProblemDetailsException(response.StatusCode, problem, body, headers)
+                {
+                    Url = url
+                };
+            }
 
             return new RequestException(response.StatusCode, body, headers)
             {
-                Url = response.RequestMessage?.RequestUri?.ToString()
+                Url = url
             };
         }
 
         /// <summary>
-        /// Handles throttling responses (HTTP 429) by creating a ThrottlingException.
-        /// This method can be overridden to provide custom throttling handling behavior.
+        /// Handles throttling responses (HTTP 429) by creating a <see cref="ThrottlingException"/>
+        /// populated with retry-after and request limit headers when present.
         /// </summary>
-        /// <param name="response">The HTTP response with 429 status code.</param>
-        /// <returns>A ThrottlingException containing retry-after and request limit information from the response headers.</returns>
         protected virtual Exception OnThrottling(HttpResponseMessage response)
         {
             return new ThrottlingException(response.GetRetryAfter(), response.GetRequestLimit());

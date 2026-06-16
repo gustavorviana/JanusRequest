@@ -6,3 +6,4 @@ using System.Runtime.InteropServices;
 [assembly: Guid("349ca625-f38e-4882-a2d8-f362120c6c5b")]
 [assembly: InternalsVisibleTo("JanusRequest.Tests")]
 [assembly: InternalsVisibleTo("JanusRequest.Net462.Tests")]
+[assembly: InternalsVisibleTo("JanusRequest.Json.Newtonsoft")]

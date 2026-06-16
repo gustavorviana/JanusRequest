@@ -57,7 +57,7 @@ namespace JanusRequest.HttpHandlers
         /// </returns>
         public async Task<HttpResponseMessage> ResendAsync()
         {
-            var clone = await CloneRequestAsync(Request);
+            var clone = await CloneRequestAsync(Request, CancellationToken);
             return await Client.SendAsync(clone, CancellationToken);
         }
 
@@ -67,7 +67,7 @@ namespace JanusRequest.HttpHandlers
         /// </summary>
         /// <param name="original">The original request message to clone.</param>
         /// <returns>A new HttpRequestMessage with the same properties as the original.</returns>
-        public static async Task<HttpRequestMessage> CloneRequestAsync(HttpRequestMessage original)
+        public static async Task<HttpRequestMessage> CloneRequestAsync(HttpRequestMessage original, CancellationToken cancellationToken = default)
         {
             var clone = new HttpRequestMessage(original.Method, original.RequestUri)
             {
@@ -78,7 +78,12 @@ namespace JanusRequest.HttpHandlers
             {
                 if (original.Content != null)
                 {
+#if NET5_0_OR_GREATER
+                    var contentBytes = await original.Content.ReadAsByteArrayAsync(cancellationToken);
+#else
+                    cancellationToken.ThrowIfCancellationRequested();
                     var contentBytes = await original.Content.ReadAsByteArrayAsync();
+#endif
                     clone.Content = new ByteArrayContent(contentBytes);
 
                     if (original.Content.Headers != null)

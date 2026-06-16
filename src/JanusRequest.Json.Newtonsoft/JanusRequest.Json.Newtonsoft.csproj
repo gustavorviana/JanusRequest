@@ -1,16 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net5.0;net6.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>net472;netstandard2.0;net5.0;net6.0;net8.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<LangVersion>10.0</LangVersion>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageIcon>icon.png</PackageIcon>
 		<PackageId>JanusRequest.Json.Newtonsoft</PackageId>
 		<Title>JanusRequest - Newtonsoft.Json integration</Title>
 		<Description>Optional Newtonsoft.Json integration for JanusRequest, providing an extension method to switch HttpApiClientSettings to use Newtonsoft.Json on .NET 5+.</Description>
 		<PackageTags>janusrequest;http;api;client;json;newtonsoft</PackageTags>
 	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+		<Reference Include="System.Net.Http" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\JanusRequest\JanusRequest.csproj" />

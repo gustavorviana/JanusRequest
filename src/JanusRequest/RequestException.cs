@@ -94,5 +94,20 @@ namespace JanusRequest
         public RequestException(string message) : base(message)
         {
         }
+
+        /// <summary>
+        /// Initializes a new instance of the RequestException class with a custom message and full response context.
+        /// </summary>
+        /// <param name="message">The custom error message.</param>
+        /// <param name="statusCode">The HTTP status code of the failed request.</param>
+        /// <param name="response">The response content from the failed request.</param>
+        /// <param name="headers">The response headers from the failed request.</param>
+        public RequestException(string message, HttpStatusCode statusCode, string response = null, IReadOnlyDictionary<string, IReadOnlyList<string>> headers = null)
+            : base(message)
+        {
+            StatusCode = statusCode;
+            Response = response;
+            Headers = headers;
+        }
     }
 }

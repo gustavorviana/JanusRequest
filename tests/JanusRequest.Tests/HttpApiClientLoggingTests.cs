@@ -30,25 +30,22 @@ namespace JanusRequest.Tests
         [Fact]
         public async Task SendAsync_WithHttpErrorHandler_LogsErrorWithRequestExceptionAndHeadersAsync()
         {
-            // Arrange
             var request = new TestRequest();
             _settings.SetHandlers(new HttpErrorHandler());
             SetupHttpResponse(HttpStatusCode.BadRequest, "Bad Request");
             var logger = new TestLogger();
             _httpApiClient.Logger = logger;
 
-            // Act
-            var ex = await Assert.ThrowsAsync<RequestException>(() => _httpApiClient.SendAsync(request));
+            var response = await _httpApiClient.SendAsync(request);
 
-            // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, ex.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.Status);
             Assert.Equal(1, logger.ErrorCount);
-            Assert.IsType<RequestException>(logger.LastException);
-
-            var logged = (RequestException)logger.LastException!;
+            var logged = Assert.IsType<RequestException>(logger.LastException);
             Assert.Equal(HttpStatusCode.BadRequest, logged.StatusCode);
-            // Headers should be captured by HttpErrorHandler
             Assert.NotNull(logged.Headers);
+
+            var ex = Assert.Throws<RequestException>(() => response.EnsureSuccessStatusCode());
+            Assert.Same(logger.LastException, ex);
         }
 
         [Fact]

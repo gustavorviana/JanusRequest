@@ -199,8 +199,12 @@ namespace JanusRequest.HttpHandlers
 
                 if (DelayStrategy == RetryDelayStrategy.Jitter)
                 {
-                    var jitter = 0.5 + _random.NextDouble();
-                    delaySeconds *= jitter;
+                    double sample;
+                    lock (_random)
+                    {
+                        sample = _random.NextDouble();
+                    }
+                    delaySeconds *= 0.5 + sample;
                 }
             }
 

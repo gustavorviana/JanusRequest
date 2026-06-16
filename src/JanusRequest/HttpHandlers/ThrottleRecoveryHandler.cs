@@ -9,6 +9,11 @@ namespace JanusRequest.HttpHandlers
     /// This handler implements automatic retry logic with delay based on the Retry-After header
     /// to handle rate limiting scenarios gracefully.
     /// </summary>
+    /// <remarks>
+    /// Prefer <see cref="ThrottleRetryHandler"/>, which supports configurable max retries and backoff/jitter.
+    /// Registering both handlers simultaneously is unsupported because they both match HTTP 429.
+    /// </remarks>
+    [Obsolete("Use ThrottleRetryHandler for richer retry behavior (max retries, backoff, jitter). This handler will be removed in a future release.")]
     public class ThrottleRecoveryHandler : IHttpRecoveryHandler
     {
         /// <summary>
@@ -41,6 +46,8 @@ namespace JanusRequest.HttpHandlers
         /// <exception cref="ThrottlingException">Thrown when the Retry-After value exceeds <see cref="MaxRetryAfterSeconds"/>.</exception>
         public async Task<HttpResponseMessage> RecoverAsync(HttpRecoveryContext context)
         {
+            context.CancellationToken.ThrowIfCancellationRequested();
+
             var retryAfterSeconds = context.Response.GetRetryAfter();
             context.Response.Dispose();
 

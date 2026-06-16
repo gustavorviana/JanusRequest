@@ -256,5 +256,134 @@ namespace JanusRequest.Tests
             // Assert - no exceptions thrown
             await Task.WhenAll(tasks);
         }
+
+        #region Fallback Deserializer
+
+        public class TestOpenDeserializer<T> : IResponseDeserializer<T>
+        {
+            public Task<T> DeserializeAsync(HttpResponseMessage response, HttpApiClientSettings settings)
+                => Task.FromResult(default(T));
+        }
+
+        public class ConstrainedDeserializer<T> : IResponseDeserializer<T> where T : IDisposable
+        {
+            public Task<T> DeserializeAsync(HttpResponseMessage response, HttpApiClientSettings settings)
+                => Task.FromResult(default(T));
+        }
+
+        public class NotADeserializer<T> { }
+
+        public class TwoTypeParamsDeserializer<T1, T2> : IResponseDeserializer<T1>
+        {
+            public Task<T1> DeserializeAsync(HttpResponseMessage response, HttpApiClientSettings settings)
+                => Task.FromResult(default(T1));
+        }
+
+        [Fact]
+        public void SetFallbackDeserializer_WithValidOpenGeneric_ReturnsThis()
+        {
+            var result = _settings.SetFallbackDeserializer(typeof(TestOpenDeserializer<>));
+
+            Assert.Same(_settings, result);
+        }
+
+        [Fact]
+        public void SetFallbackDeserializer_WithNull_ClearsFallback()
+        {
+            _settings.SetFallbackDeserializer(typeof(TestOpenDeserializer<>));
+
+            _settings.SetFallbackDeserializer(null);
+
+            Assert.Null(_settings.GetFallbackDeserializerType(typeof(TestResponse)));
+        }
+
+        [Fact]
+        public void SetFallbackDeserializer_WithNonGenericType_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => _settings.SetFallbackDeserializer(typeof(string)));
+        }
+
+        [Fact]
+        public void SetFallbackDeserializer_WithClosedGenericType_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => _settings.SetFallbackDeserializer(typeof(List<int>)));
+        }
+
+        [Fact]
+        public void SetFallbackDeserializer_WithTwoTypeParameters_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => _settings.SetFallbackDeserializer(typeof(TwoTypeParamsDeserializer<,>)));
+        }
+
+        [Fact]
+        public void SetFallbackDeserializer_WithTypeThatDoesNotImplementInterface_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => _settings.SetFallbackDeserializer(typeof(NotADeserializer<>)));
+        }
+
+        [Fact]
+        public void GetFallbackDeserializerType_WhenNoFallbackSet_ReturnsNull()
+        {
+            var result = _settings.GetFallbackDeserializerType(typeof(TestResponse));
+
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public void GetFallbackDeserializerType_WhenFallbackSet_ReturnsClosedType()
+        {
+            _settings.SetFallbackDeserializer(typeof(TestOpenDeserializer<>));
+
+            var result = _settings.GetFallbackDeserializerType(typeof(TestResponse));
+
+            Assert.Equal(typeof(TestOpenDeserializer<TestResponse>), result);
+        }
+
+        [Fact]
+        public void GetFallbackDeserializerType_CachesClosedType()
+        {
+            _settings.SetFallbackDeserializer(typeof(TestOpenDeserializer<>));
+
+            _settings.GetFallbackDeserializerType(typeof(TestResponse));
+
+            // After fallback caches, GetDeserializerType should return the closed type directly
+            var cached = _settings.GetDeserializerType(typeof(TestResponse));
+            Assert.Equal(typeof(TestOpenDeserializer<TestResponse>), cached);
+        }
+
+        [Fact]
+        public void GetFallbackDeserializerType_WithConstraintViolation_ReturnsNull()
+        {
+            _settings.SetFallbackDeserializer(typeof(ConstrainedDeserializer<>));
+
+            // TestResponse does not implement IDisposable, so MakeGenericType should fail
+            var result = _settings.GetFallbackDeserializerType(typeof(TestResponse));
+
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public void GetFallbackDeserializerType_ExplicitRegistrationTakesPrecedence()
+        {
+            _settings.SetFallbackDeserializer(typeof(TestOpenDeserializer<>));
+            _settings.AddDeserializer<TestResponse, TestDeserializer>();
+
+            var result = _settings.GetDeserializerType(typeof(TestResponse));
+
+            Assert.Equal(typeof(TestDeserializer), result);
+        }
+
+        [Fact]
+        public void GetFallbackDeserializerType_AttributeTakesPrecedence()
+        {
+            _settings.SetFallbackDeserializer(typeof(TestOpenDeserializer<>));
+
+            // ResponseWithAttribute has [ResponseDeserializer(typeof(TestDeserializer))]
+            var result = _settings.GetDeserializerType(typeof(ResponseWithAttribute));
+
+            Assert.Equal(typeof(TestDeserializer), result);
+        }
+
+        #endregion
     }
 }

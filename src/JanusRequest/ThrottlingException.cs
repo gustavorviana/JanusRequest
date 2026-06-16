@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Net;
 
 namespace JanusRequest
 {
     /// <summary>
     /// Exception that represents a throttling error when API rate limits are exceeded.
-    /// This exception is thrown when the server responds with a 429 (Too Many Requests) status code,
-    /// providing information about when the client can retry the request and what the rate limit is.
+    /// Thrown when the server responds with HTTP 429 (Too Many Requests).
+    /// Inherits from <see cref="RequestException"/> so generic <c>catch (RequestException)</c> handlers receive it.
     /// </summary>
-    public class ThrottlingException : Exception
+    public class ThrottlingException : RequestException
     {
         /// <summary>
         /// Gets the number of seconds after which the request can be retried.
@@ -48,7 +49,8 @@ namespace JanusRequest
         /// <param name="retryAt">The number of seconds after which the request can be retried.</param>
         /// <param name="requestLimit">The maximum number of requests allowed within the rate limit window.</param>
         /// <param name="message">The custom error message.</param>
-        public ThrottlingException(int retryAt, int requestLimit, string message) : base(message)
+        public ThrottlingException(int retryAt, int requestLimit, string message)
+            : base(message, (HttpStatusCode)429)
         {
             RetryAfter = retryAt;
             RequestLimit = requestLimit;

@@ -1,11 +1,11 @@
 ﻿using JanusRequest.Attributes;
 using JanusRequest.Nodes;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Web;
 
 namespace JanusRequest.Builders
 {
@@ -175,6 +175,8 @@ namespace JanusRequest.Builders
             return builder.ToString();
         }
 
+        private static string Encode(string value) => value == null ? string.Empty : Uri.EscapeDataString(value);
+
         private void Build(StringBuilder builder)
         {
             using (var enumerator = _items.GetEnumerator())
@@ -182,10 +184,10 @@ namespace JanusRequest.Builders
                 if (!enumerator.MoveNext())
                     return;
 
-                builder.AppendFormat("?{0}={1}", HttpUtility.UrlEncode(enumerator.Current.Key), HttpUtility.UrlEncode(enumerator.Current.Value));
+                builder.AppendFormat("?{0}={1}", Encode(enumerator.Current.Key), Encode(enumerator.Current.Value));
 
                 while (enumerator.MoveNext())
-                    builder.AppendFormat("&{0}={1}", HttpUtility.UrlEncode(enumerator.Current.Key), HttpUtility.UrlEncode(enumerator.Current.Value));
+                    builder.AppendFormat("&{0}={1}", Encode(enumerator.Current.Key), Encode(enumerator.Current.Value));
             }
         }
 

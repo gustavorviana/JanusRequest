@@ -46,7 +46,7 @@ namespace JanusRequest.Extensions.DependencyInjection
         {
             if (exception == null) return;
 
-            var url = response?.RequestMessage?.RequestUri?.ToString();
+            var url = response?.RequestMessage?.RequestUri?.ToString() ?? request?.RequestUri?.ToString();
             var statusCode = response != null ? (int)response.StatusCode : (int?)null;
 
             _logger.LogError(

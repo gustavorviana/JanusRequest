@@ -3,6 +3,7 @@ using JanusRequest.ContentTranslator;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using System.Text;
 
@@ -17,7 +18,8 @@ namespace JanusRequest.Json.Newtonsoft
     {
         private readonly JsonSerializerSettings _settings = new JsonSerializerSettings
         {
-            ContractResolver = new IgnoreRestApiAttributesContractResolver()
+            ContractResolver = new IgnoreRestApiAttributesContractResolver(),
+            Converters = { new ProblemDetailsNewtonsoftJsonConverter() }
         };
 
         public override string ContentType => HttpContentType.Json;

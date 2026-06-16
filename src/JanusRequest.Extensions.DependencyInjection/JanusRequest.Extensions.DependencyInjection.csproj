@@ -3,6 +3,9 @@
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.0;net5.0;net6.0;net8.0</TargetFrameworks>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageIcon>icon.png</PackageIcon>
+		<Description>Dependency injection extensions for JanusRequest, providing integration with Microsoft.Extensions.DependencyInjection, IHttpClientFactory, and Microsoft.Extensions.Logging.</Description>
+		<PackageTags>janusrequest;http;api;client;dependency-injection;di;httpclientfactory;logging</PackageTags>
 		<PackageReleaseNotes>
 			Initial release of JanusRequest dependency injection extensions:
 			- Integration with Microsoft.Extensions.DependencyInjection and IHttpClientFactory
